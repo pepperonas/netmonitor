@@ -44,4 +44,4 @@ Compose BOM 2024.01.00, Activity Compose 1.8.2, Lifecycle 2.7.0, Core KTX 1.12.0
 
 ## Versioning
 
-`versionName` and `versionCode` in `app/build.gradle.kts`. Currently 1.0 / 1.
+`versionName` and `versionCode` in `app/build.gradle.kts`. Currently 0.0.1 / 1. SemVer: bump both fields + version badge in README when releasing.
