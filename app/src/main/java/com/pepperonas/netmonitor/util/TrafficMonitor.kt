@@ -32,10 +32,12 @@ class TrafficMonitor {
 
     companion object {
         fun formatSpeedParts(bytesPerSec: Long): FormattedSpeed = when {
-            bytesPerSec < 1_024 -> FormattedSpeed("$bytesPerSec", "B/s")
-            bytesPerSec < 1_024 * 1_024 -> FormattedSpeed("${bytesPerSec / 1_024}", "KB/s")
+            bytesPerSec < 1_024 * 1_024 -> FormattedSpeed(
+                "${(bytesPerSec + 512) / 1_024}", "KB/s"
+            )
             else -> FormattedSpeed(
-                String.format("%.1f", bytesPerSec / (1_024.0 * 1_024.0)), "MB/s"
+                String.format("%.1f", bytesPerSec / (1_024.0 * 1_024.0))
+                    .replace('.', ','), "MB/s"
             )
         }
 

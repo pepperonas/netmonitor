@@ -2,36 +2,41 @@
 
 ## Project Overview
 
-NetMonitor is an Android network traffic monitoring app (Kotlin, Jetpack Compose, Material 3). It displays real-time download/upload speeds and per-app data usage via a foreground service with persistent notification.
+NetMonitor is an Android network speed monitor (Kotlin, Jetpack Compose, Material 3). It displays real-time download/upload speeds as dynamic bitmap icons in the status bar via two foreground service notifications, plus a per-app traffic breakdown in the main UI.
 
 ## Build & Run
 
 ```bash
 ./gradlew assembleDebug          # Debug build
 ./gradlew installDebug           # Install on connected device via ADB
+./gradlew assembleRelease        # Release build (ProGuard enabled)
 ```
 
-Requires `ANDROID_HOME` to be set (default: `~/Library/Android/sdk`).
+Requires `ANDROID_HOME` (default: `~/Library/Android/sdk`).
 
 ## Project Structure
 
 Single-module app (`app/`), package `com.pepperonas.netmonitor`:
 
-- `MainActivity.kt` -- Entry point, notification permission, service toggle
-- `service/NetworkMonitorService.kt` -- Foreground service, 500ms polling loop, notification updates
-- `ui/MainScreen.kt` -- Compose UI with speed card + per-app traffic list
-- `ui/MainViewModel.kt` -- StateFlows for speed and app traffic data
-- `model/AppTrafficInfo.kt` -- Data class for per-app traffic
+- `MainActivity.kt` -- Entry point, notification permission handling, service toggle
+- `NetMonitorApplication.kt` -- Application subclass (minimal)
+- `service/NetworkMonitorService.kt` -- Foreground service, two notifications (DL + UL), 1 Hz update loop
+- `ui/MainScreen.kt` -- Compose UI: speed card + per-app traffic list + service toggle button
+- `ui/MainViewModel.kt` -- StateFlows for speed (1 Hz) and app traffic data
+- `model/AppTrafficInfo.kt` -- Data class for per-app traffic (appName, packageName, uid, rxBytes, txBytes)
 - `util/TrafficMonitor.kt` -- TrafficStats wrapper, speed calculation, formatting (`formatSpeed`, `formatSpeedParts`, `formatBytes`)
-- `util/SpeedIconRenderer.kt` -- Generates 96x96 ALPHA_8 bitmap icons for notification small icons
+- `util/SpeedIconRenderer.kt` -- Renders 96x96 ALPHA_8 bitmap icons for notification small icons
 
 ## Key Patterns
 
-- **No DI framework** -- Manual wiring, `NetMonitorApplication` is minimal
+- **No DI framework** -- Manual wiring, minimal Application class
 - **UI language is German** -- Notification channel name, button labels, section headers
-- **Foreground service type**: `specialUse` (network monitoring)
-- **Update rate**: 500ms (2 Hz) for both service notification and UI speed display
+- **Two notifications** -- ID 1 = download (always left via `setWhen(MAX_VALUE)`), ID 2 = upload
+- **Speed format convention** -- Whole number = KB/s, number with comma = MB/s (no unit text in icon)
+- **No B/s range** -- Values below 1 KB are rounded up to KB/s (`(bytes + 512) / 1024`)
+- **Update rate**: 1 Hz (1000ms) for both service notifications and UI speed display
 - **TrafficMonitor** is instantiated per consumer (ViewModel + Service each have their own)
+- **SpeedIconRenderer** uses `sans-serif-black` bold + `FILL_AND_STROKE` with auto-fit sizing
 
 ## Dependencies
 
