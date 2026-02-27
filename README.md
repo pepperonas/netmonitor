@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://developer.android.com/about/versions/oreo"><img src="https://img.shields.io/badge/minSdk-26-brightgreen" alt="minSdk 26" /></a>
   <a href="https://developer.android.com/about/versions/14"><img src="https://img.shields.io/badge/targetSdk-34-blue" alt="targetSdk 34" /></a>
-  <img src="https://img.shields.io/badge/version-0.0.1-orange" alt="Version 0.0.1" />
+  <img src="https://img.shields.io/badge/version-0.1.0-orange" alt="Version 0.1.0" />
   <img src="https://img.shields.io/badge/Kotlin-1.9.22-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin" />
   <img src="https://img.shields.io/badge/Jetpack_Compose-Material_3-4285F4?logo=jetpackcompose&logoColor=white" alt="Compose" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License" /></a>
@@ -112,6 +112,10 @@ No network libraries, no database, no DI framework. Pure Android SDK + Jetpack C
 | `FOREGROUND_SERVICE_SPECIAL_USE` | Required since Android 14 for non-standard foreground services |
 | `POST_NOTIFICATIONS` | Display speed notifications (runtime permission on Android 13+) |
 | `QUERY_ALL_PACKAGES` | Resolve UIDs to app names for the per-app traffic breakdown |
+
+## Author
+
+**Martin Pfeffer** -- [celox.io](https://celox.io) -- [GitHub](https://github.com/pepperonas)
 
 ## License
 

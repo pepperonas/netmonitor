@@ -34,7 +34,7 @@ class NetworkMonitorService : Service() {
     override fun onCreate() {
         super.onCreate()
         notificationManager = getSystemService(NotificationManager::class.java)
-        createNotificationChannel()
+        createNotificationChannels()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -67,21 +67,28 @@ class NetworkMonitorService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun createNotificationChannel() {
-        val channel = NotificationChannel(
-            CHANNEL_ID, "Netzwerk-Monitor", NotificationManager.IMPORTANCE_LOW
+    private fun createNotificationChannels() {
+        val downChannel = NotificationChannel(
+            CHANNEL_ID_DOWN, "Download-Geschwindigkeit", NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "Zeigt aktuelle Netzwerkgeschwindigkeit"
+            description = "Zeigt aktuelle Download-Geschwindigkeit"
             setShowBadge(false)
         }
-        notificationManager.createNotificationChannel(channel)
+        val upChannel = NotificationChannel(
+            CHANNEL_ID_UP, "Upload-Geschwindigkeit", NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "Zeigt aktuelle Upload-Geschwindigkeit"
+            setShowBadge(false)
+        }
+        notificationManager.createNotificationChannel(downChannel)
+        notificationManager.createNotificationChannel(upChannel)
     }
 
     private fun buildDownloadNotification(speed: TrafficMonitor.Speed): Notification {
         val parts = TrafficMonitor.formatSpeedParts(speed.rxBytesPerSec)
         val icon = SpeedIconRenderer.createDownloadBitmap(parts.value, parts.unit)
 
-        return baseBuilder()
+        return baseBuilder(CHANNEL_ID_DOWN)
             .setSmallIcon(IconCompat.createWithBitmap(icon))
             .setContentTitle("\u2193 ${parts.value} ${parts.unit}")
             .setContentText("Download")
@@ -95,7 +102,7 @@ class NetworkMonitorService : Service() {
         val parts = TrafficMonitor.formatSpeedParts(speed.txBytesPerSec)
         val icon = SpeedIconRenderer.createUploadBitmap(parts.value, parts.unit)
 
-        return baseBuilder()
+        return baseBuilder(CHANNEL_ID_UP)
             .setSmallIcon(IconCompat.createWithBitmap(icon))
             .setContentTitle("\u2191 ${parts.value} ${parts.unit}")
             .setContentText("Upload")
@@ -105,7 +112,7 @@ class NetworkMonitorService : Service() {
             .build()
     }
 
-    private fun baseBuilder(): NotificationCompat.Builder {
+    private fun baseBuilder(channelId: String): NotificationCompat.Builder {
         val openIntent = PendingIntent.getActivity(
             this, 0,
             Intent(this, MainActivity::class.java),
@@ -117,7 +124,7 @@ class NetworkMonitorService : Service() {
             PendingIntent.FLAG_IMMUTABLE
         )
 
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        return NotificationCompat.Builder(this, channelId)
             .setContentIntent(openIntent)
             .addAction(0, "Stopp", stopIntent)
             .setOngoing(true)
@@ -133,7 +140,8 @@ class NetworkMonitorService : Service() {
     }
 
     companion object {
-        const val CHANNEL_ID = "net_monitor"
+        const val CHANNEL_ID_DOWN = "net_monitor_download"
+        const val CHANNEL_ID_UP = "net_monitor_upload"
         const val NOTIFICATION_ID_DOWN = 1
         const val NOTIFICATION_ID_UP = 2
         const val ACTION_STOP = "com.pepperonas.netmonitor.STOP"
