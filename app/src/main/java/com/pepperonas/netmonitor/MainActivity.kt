@@ -45,16 +45,17 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+
+        // Auto-start monitoring on app launch
+        if (!NetworkMonitorService.isRunning.value) {
+            requestStartService()
+        }
     }
 
     override fun onResume() {
         super.onResume()
         viewModel.startSpeedUpdates()
         viewModel.loadAppTraffic()
-
-        if (!NetworkMonitorService.isRunning) {
-            requestStartService()
-        }
     }
 
     override fun onPause() {

@@ -17,6 +17,9 @@ import com.pepperonas.netmonitor.MainActivity
 import com.pepperonas.netmonitor.R
 import com.pepperonas.netmonitor.util.SpeedIconRenderer
 import com.pepperonas.netmonitor.util.TrafficMonitor
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class NetworkMonitorService : Service() {
     private val handler = Handler(Looper.getMainLooper())
@@ -53,13 +56,13 @@ class NetworkMonitorService : Service() {
             startForeground(NOTIFICATION_ID_DOWN, notification)
         }
         notificationManager.notify(NOTIFICATION_ID_UP, buildUploadNotification(TrafficMonitor.Speed(0, 0)))
-        isRunning = true
+        _isRunning.value = true
         handler.post(updateRunnable)
         return START_STICKY
     }
 
     override fun onDestroy() {
-        isRunning = false
+        _isRunning.value = false
         handler.removeCallbacks(updateRunnable)
         notificationManager.cancel(NOTIFICATION_ID_UP)
         super.onDestroy()
@@ -146,7 +149,8 @@ class NetworkMonitorService : Service() {
         const val NOTIFICATION_ID_UP = 2
         const val ACTION_STOP = "com.pepperonas.netmonitor.STOP"
         const val UPDATE_INTERVAL = 1000L // 1 Hz
-        var isRunning = false
-            private set
+
+        private val _isRunning = MutableStateFlow(false)
+        val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
     }
 }

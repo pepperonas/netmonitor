@@ -6,6 +6,7 @@ import android.net.TrafficStats
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pepperonas.netmonitor.model.AppTrafficInfo
+import com.pepperonas.netmonitor.service.NetworkMonitorService
 import com.pepperonas.netmonitor.util.TrafficMonitor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -23,6 +24,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _appTraffic = MutableStateFlow<List<AppTrafficInfo>>(emptyList())
     val appTraffic: StateFlow<List<AppTrafficInfo>> = _appTraffic
+
+    val isServiceRunning: StateFlow<Boolean> = NetworkMonitorService.isRunning
 
     private var speedJob: Job? = null
 

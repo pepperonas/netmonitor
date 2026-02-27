@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://developer.android.com/about/versions/oreo"><img src="https://img.shields.io/badge/minSdk-26-brightgreen" alt="minSdk 26" /></a>
   <a href="https://developer.android.com/about/versions/14"><img src="https://img.shields.io/badge/targetSdk-34-blue" alt="targetSdk 34" /></a>
-  <img src="https://img.shields.io/badge/version-0.2.0-orange" alt="Version 0.1.0" />
+  <img src="https://img.shields.io/badge/version-0.3.0-orange" alt="Version 0.3.0" />
   <img src="https://img.shields.io/badge/Kotlin-1.9.22-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin" />
   <img src="https://img.shields.io/badge/Jetpack_Compose-Material_3-4285F4?logo=jetpackcompose&logoColor=white" alt="Compose" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License" /></a>
@@ -36,9 +36,9 @@ Two notifications run side by side: **download (left) and upload (right)**. The 
 
 The main screen shows:
 
-- **Speed card** with live download/upload rates, updated at 1 Hz
+- **Speed card** with live download/upload rates, updated at 1 Hz, dims when monitoring is inactive
 - **Per-app traffic list** showing all apps sorted by total data usage (download + upload) since the last device reboot, with app icons and separate RX/TX counters
-- **One-tap toggle** to start/stop the monitoring service
+- **One-tap toggle** to start/stop the monitoring service (auto-starts on app launch)
 
 ### How it works
 

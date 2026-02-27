@@ -5,9 +5,12 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.net.Uri
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -33,8 +37,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -46,15 +50,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pepperonas.netmonitor.model.AppTrafficInfo
-import com.pepperonas.netmonitor.service.NetworkMonitorService
 import com.pepperonas.netmonitor.util.TrafficMonitor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,7 +71,7 @@ fun MainScreen(
 ) {
     val speed by viewModel.speed.collectAsStateWithLifecycle()
     val appTraffic by viewModel.appTraffic.collectAsStateWithLifecycle()
-    val isRunning = NetworkMonitorService.isRunning
+    val isRunning by viewModel.isServiceRunning.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val versionName = remember {
@@ -90,7 +96,7 @@ fun MainScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                SpeedCard(speed)
+                SpeedCard(speed, isRunning)
             }
 
             item {
@@ -101,16 +107,7 @@ fun MainScreen(
             }
 
             item {
-                Text(
-                    "App-Traffic (seit Neustart)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-
-            items(appTraffic, key = { it.uid }) { info ->
-                AppTrafficRow(info)
+                SectionHeader("App-Traffic (seit Neustart)")
             }
 
             if (appTraffic.isEmpty()) {
@@ -118,19 +115,35 @@ fun MainScreen(
                     Text(
                         "Lade App-Daten\u2026",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 8.dp)
                     )
                 }
             }
 
+            items(appTraffic, key = { it.uid }) { info ->
+                AppTrafficRow(info)
+            }
+
             item {
-                Spacer(Modifier.height(8.dp))
-                Divider()
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(4.dp))
+                Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                Spacer(Modifier.height(4.dp))
                 AboutSection(versionName)
+                Spacer(Modifier.height(8.dp))
             }
         }
     }
+}
+
+@Composable
+private fun SectionHeader(title: String) {
+    Text(
+        title,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+    )
 }
 
 @Composable
@@ -146,17 +159,174 @@ private fun ServiceToggleButton(
 
     Button(
         onClick = onToggle,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp),
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(containerColor = containerColor)
     ) {
         Icon(
             imageVector = if (isRunning) Icons.Default.Stop else Icons.Default.PlayArrow,
             contentDescription = null,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(22.dp)
         )
         Spacer(Modifier.width(8.dp))
-        Text(if (isRunning) "Monitoring stoppen" else "Monitoring starten")
+        Text(
+            if (isRunning) "Monitoring stoppen" else "Monitoring starten",
+            style = MaterialTheme.typography.labelLarge
+        )
+    }
+}
+
+@Composable
+private fun SpeedCard(speed: TrafficMonitor.Speed, isRunning: Boolean) {
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (isRunning) 1f else 0.4f,
+        label = "speedAlpha"
+    )
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+                .alpha(contentAlpha)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                SpeedColumn(
+                    label = "Download",
+                    value = TrafficMonitor.formatSpeed(speed.rxBytesPerSec),
+                    icon = Icons.Default.ArrowDownward,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                SpeedColumn(
+                    label = "Upload",
+                    value = TrafficMonitor.formatSpeed(speed.txBytesPerSec),
+                    icon = Icons.Default.ArrowUpward,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+            }
+
+            if (!isRunning) {
+                Text(
+                    "Monitoring inaktiv",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(top = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpeedColumn(
+    label: String,
+    value: String,
+    icon: ImageVector,
+    color: Color
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(icon, contentDescription = label, tint = color, modifier = Modifier.size(28.dp))
+        Spacer(Modifier.height(4.dp))
+        Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text(
+            label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun AppTrafficRow(info: AppTrafficInfo) {
+    val context = LocalContext.current
+    val icon = remember(info.packageName) {
+        try {
+            val drawable = context.packageManager.getApplicationIcon(info.packageName)
+            val bmp = Bitmap.createBitmap(
+                drawable.intrinsicWidth.coerceAtLeast(1),
+                drawable.intrinsicHeight.coerceAtLeast(1),
+                Bitmap.Config.ARGB_8888
+            )
+            Canvas(bmp).let { canvas ->
+                drawable.setBounds(0, 0, canvas.width, canvas.height)
+                drawable.draw(canvas)
+            }
+            bmp.asImageBitmap()
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (icon != null) {
+                    Image(
+                        bitmap = icon,
+                        contentDescription = info.appName,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    info.appName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        "\u2193 ${TrafficMonitor.formatBytes(info.rxBytes)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        "\u2191 ${TrafficMonitor.formatBytes(info.txBytes)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+            }
+
+            Text(
+                TrafficMonitor.formatBytes(info.rxBytes + info.txBytes),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -226,7 +396,12 @@ private fun AboutRow(
     Row(
         modifier = if (onClick != null) Modifier
             .fillMaxWidth()
-            .clickable { onClick() } else Modifier.fillMaxWidth(),
+            .clip(RoundedCornerShape(8.dp))
+            .clickable { onClick() }
+            .padding(vertical = 2.dp)
+        else Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -245,130 +420,5 @@ private fun AboutRow(
             color = if (onClick != null) MaterialTheme.colorScheme.primary
             else MaterialTheme.colorScheme.onSurface
         )
-    }
-}
-
-@Composable
-private fun SpeedCard(speed: TrafficMonitor.Speed) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            SpeedColumn(
-                label = "Download",
-                value = TrafficMonitor.formatSpeed(speed.rxBytesPerSec),
-                icon = Icons.Default.ArrowDownward,
-                color = MaterialTheme.colorScheme.primary
-            )
-            SpeedColumn(
-                label = "Upload",
-                value = TrafficMonitor.formatSpeed(speed.txBytesPerSec),
-                icon = Icons.Default.ArrowUpward,
-                color = MaterialTheme.colorScheme.tertiary
-            )
-        }
-    }
-}
-
-@Composable
-private fun SpeedColumn(
-    label: String,
-    value: String,
-    icon: ImageVector,
-    color: Color
-) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(icon, contentDescription = label, tint = color, modifier = Modifier.size(28.dp))
-        Spacer(Modifier.height(4.dp))
-        Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text(
-            label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun AppTrafficRow(info: AppTrafficInfo) {
-    val context = LocalContext.current
-    val icon = remember(info.packageName) {
-        try {
-            val drawable = context.packageManager.getApplicationIcon(info.packageName)
-            val bmp = Bitmap.createBitmap(
-                drawable.intrinsicWidth.coerceAtLeast(1),
-                drawable.intrinsicHeight.coerceAtLeast(1),
-                Bitmap.Config.ARGB_8888
-            )
-            Canvas(bmp).let { canvas ->
-                drawable.setBounds(0, 0, canvas.width, canvas.height)
-                drawable.draw(canvas)
-            }
-            bmp.asImageBitmap()
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (icon != null) {
-                Image(
-                    bitmap = icon,
-                    contentDescription = info.appName,
-                    modifier = Modifier.size(40.dp)
-                )
-            } else {
-                Spacer(Modifier.size(40.dp))
-            }
-
-            Spacer(Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    info.appName,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1
-                )
-                Row {
-                    Text(
-                        "\u2193 ${TrafficMonitor.formatBytes(info.rxBytes)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        "\u2191 ${TrafficMonitor.formatBytes(info.txBytes)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
-                }
-            }
-
-            Text(
-                TrafficMonitor.formatBytes(info.rxBytes + info.txBytes),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
     }
 }
