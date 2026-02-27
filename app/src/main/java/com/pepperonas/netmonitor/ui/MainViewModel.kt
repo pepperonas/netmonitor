@@ -31,7 +31,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         speedJob = viewModelScope.launch {
             while (isActive) {
                 _speed.value = trafficMonitor.sample()
-                delay(500)
+                delay(1000)
             }
         }
     }
