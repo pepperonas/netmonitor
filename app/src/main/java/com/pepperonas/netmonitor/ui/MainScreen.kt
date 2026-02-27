@@ -4,6 +4,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.net.Uri
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,12 +20,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -71,16 +75,7 @@ fun MainScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Column {
-                        Text("NetMonitor")
-                        Text(
-                            "v$versionName",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                        )
-                    }
-                },
+                title = { Text("NetMonitor") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
@@ -92,30 +87,25 @@ fun MainScreen(
                 .fillMaxSize()
                 .padding(padding),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
                 SpeedCard(speed)
             }
 
             item {
-                Button(
-                    onClick = { onToggleService(isRunning) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = if (isRunning) ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    ) else ButtonDefaults.buttonColors()
-                ) {
-                    Text(if (isRunning) "Monitoring stoppen" else "Monitoring starten")
-                }
+                ServiceToggleButton(
+                    isRunning = isRunning,
+                    onToggle = { onToggleService(isRunning) }
+                )
             }
 
             item {
-                Spacer(Modifier.height(8.dp))
                 Text(
                     "App-Traffic (seit Neustart)",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
 
@@ -134,12 +124,39 @@ fun MainScreen(
             }
 
             item {
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(8.dp))
                 Divider()
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(8.dp))
                 AboutSection(versionName)
             }
         }
+    }
+}
+
+@Composable
+private fun ServiceToggleButton(
+    isRunning: Boolean,
+    onToggle: () -> Unit
+) {
+    val containerColor by animateColorAsState(
+        targetValue = if (isRunning) MaterialTheme.colorScheme.error
+        else MaterialTheme.colorScheme.primary,
+        label = "buttonColor"
+    )
+
+    Button(
+        onClick = onToggle,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = containerColor)
+    ) {
+        Icon(
+            imageVector = if (isRunning) Icons.Default.Stop else Icons.Default.PlayArrow,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(if (isRunning) "Monitoring stoppen" else "Monitoring starten")
     }
 }
 
@@ -149,13 +166,14 @@ private fun AboutSection(versionName: String) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(
                 "Info",
@@ -234,6 +252,7 @@ private fun AboutRow(
 private fun SpeedCard(speed: TrafficMonitor.Speed) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
@@ -241,7 +260,7 @@ private fun SpeedCard(speed: TrafficMonitor.Speed) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(24.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             SpeedColumn(
@@ -300,7 +319,10 @@ private fun AppTrafficRow(info: AppTrafficInfo) {
         }
     }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp)
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

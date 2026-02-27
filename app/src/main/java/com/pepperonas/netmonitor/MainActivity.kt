@@ -51,6 +51,10 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         viewModel.startSpeedUpdates()
         viewModel.loadAppTraffic()
+
+        if (!NetworkMonitorService.isRunning) {
+            requestStartService()
+        }
     }
 
     override fun onPause() {
