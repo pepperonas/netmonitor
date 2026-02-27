@@ -56,10 +56,24 @@ fun MainScreen(
     val appTraffic by viewModel.appTraffic.collectAsStateWithLifecycle()
     val isRunning = NetworkMonitorService.isRunning
 
+    val context = LocalContext.current
+    val versionName = remember {
+        context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: ""
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("NetMonitor") },
+                title = {
+                    Column {
+                        Text("NetMonitor")
+                        Text(
+                            "v$versionName",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
