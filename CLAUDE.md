@@ -1,47 +1,43 @@
 # CLAUDE.md
 
-## Project Overview
-
-NetMonitor is an Android network speed monitor (Kotlin, Jetpack Compose, Material 3). It displays real-time download/upload speeds as dynamic bitmap icons in the status bar via two foreground service notifications, plus a per-app traffic breakdown in the main UI.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Build & Run
 
 ```bash
-./gradlew assembleDebug          # Debug build
+./gradlew assembleDebug          # Debug APK
 ./gradlew installDebug           # Install on connected device via ADB
-./gradlew assembleRelease        # Release build (ProGuard enabled)
+./gradlew assembleRelease        # Signed release APK (ProGuard + shrinkResources)
 ```
 
 Requires `ANDROID_HOME` (default: `~/Library/Android/sdk`).
 
-## Project Structure
+## Release Process
 
-Single-module app (`app/`), package `com.pepperonas.netmonitor`:
+SemVer in `app/build.gradle.kts` (`versionName` + `versionCode`). When releasing:
+1. Bump `versionName` and `versionCode` in `app/build.gradle.kts`
+2. Update version badge in `README.md`
+3. Commit, then tag: `git tag v0.0.2 && git push origin v0.0.2`
 
-- `MainActivity.kt` -- Entry point, notification permission handling, service toggle
-- `NetMonitorApplication.kt` -- Application subclass (minimal)
-- `service/NetworkMonitorService.kt` -- Foreground service, two notifications (DL + UL), 1 Hz update loop
-- `ui/MainScreen.kt` -- Compose UI: speed card + per-app traffic list + service toggle button
-- `ui/MainViewModel.kt` -- StateFlows for speed (1 Hz) and app traffic data
-- `model/AppTrafficInfo.kt` -- Data class for per-app traffic (appName, packageName, uid, rxBytes, txBytes)
-- `util/TrafficMonitor.kt` -- TrafficStats wrapper, speed calculation, formatting (`formatSpeed`, `formatSpeedParts`, `formatBytes`)
-- `util/SpeedIconRenderer.kt` -- Renders 96x96 ALPHA_8 bitmap icons for notification small icons
+The `v*` tag triggers `.github/workflows/release.yml` which builds signed release + debug APKs and uploads them to a GitHub Release.
 
-## Key Patterns
+**Signing**: env vars `RELEASE_STORE_FILE`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD` (CI via GitHub Secrets) or `local.properties` (local dev). Keystore: `netmonitor-release.jks`, alias `netmonitor`.
 
-- **No DI framework** -- Manual wiring, minimal Application class
-- **UI language is German** -- Notification channel name, button labels, section headers
-- **Two notifications** -- ID 1 = download (always left via `setWhen(MAX_VALUE)`), ID 2 = upload
-- **Speed format convention** -- Whole number = KB/s, number with comma = MB/s (no unit text in icon)
-- **No B/s range** -- Values below 1 KB are rounded up to KB/s (`(bytes + 512) / 1024`)
-- **Update rate**: 1 Hz (1000ms) for both service notifications and UI speed display
-- **TrafficMonitor** is instantiated per consumer (ViewModel + Service each have their own)
-- **SpeedIconRenderer** uses `sans-serif-black` bold + `FILL_AND_STROKE` with auto-fit sizing
+## Architecture
 
-## Dependencies
+Single-module Kotlin/Compose app, package `com.pepperonas.netmonitor`. No DI framework, no database, no network libraries.
 
-Compose BOM 2024.01.00, Activity Compose 1.8.2, Lifecycle 2.7.0, Core KTX 1.12.0. No Room, no network libraries, no DI.
+**Data flow**: `TrafficMonitor.sample()` reads `TrafficStats` byte counters, computes delta over nanosecond intervals, returns `Speed(rxBytesPerSec, txBytesPerSec)`. Each consumer (ViewModel, Service) owns its own `TrafficMonitor` instance.
 
-## Versioning
+**Two notification icons in status bar**: `NetworkMonitorService` posts two separate notifications (ID 1 = download, ID 2 = upload). Download is forced left via `setWhen(Long.MAX_VALUE)`. `SpeedIconRenderer` renders the speed value into 96x96 `ALPHA_8` bitmaps using `IconCompat.createWithBitmap()`.
 
-`versionName` and `versionCode` in `app/build.gradle.kts`. Currently 0.0.1 / 1. SemVer: bump both fields + version badge in README when releasing.
+**Speed format convention**: Whole number = KB/s, number with comma = MB/s. No unit text in the icon — the format itself encodes the unit. Values below 1 KB round up to KB/s. `TrafficMonitor.formatSpeedParts()` returns `FormattedSpeed(value, unit)` with comma as decimal separator for MB/s.
+
+**SpeedIconRenderer**: Kotlin `object`, reuses a single `Paint` (sans-serif-black bold, FILL_AND_STROKE, 3px stroke). Auto-fits text size (up to 88px) to fill the 96px bitmap width.
+
+## Key Conventions
+
+- **UI language is German** — button labels, notification text, section headers
+- **Update rate**: 1 Hz (1000ms) for both service and UI
+- **Foreground service type**: `specialUse` (network monitoring)
+- **No tests** — project has no test suite currently

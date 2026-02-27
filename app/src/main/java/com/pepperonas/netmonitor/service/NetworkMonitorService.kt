@@ -123,7 +123,6 @@ class NetworkMonitorService : Service() {
             .setOngoing(true)
             .setSilent(true)
             .setOnlyAlertOnce(true)
-            .setGroup(GROUP_KEY)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
     }
@@ -137,7 +136,6 @@ class NetworkMonitorService : Service() {
         const val CHANNEL_ID = "net_monitor"
         const val NOTIFICATION_ID_DOWN = 1
         const val NOTIFICATION_ID_UP = 2
-        const val GROUP_KEY = "com.pepperonas.netmonitor.SPEED"
         const val ACTION_STOP = "com.pepperonas.netmonitor.STOP"
         const val UPDATE_INTERVAL = 1000L // 1 Hz
         var isRunning = false
