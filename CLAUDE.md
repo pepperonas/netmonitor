@@ -7,67 +7,76 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 export ANDROID_HOME=~/Library/Android/sdk
 
-./gradlew assembleDebug                    # Debug APK
-./gradlew assembleRelease                  # Signed release APK (requires signing env vars or local.properties)
-./gradlew test                             # Run unit tests
-adb install -r app/build/outputs/apk/debug/app-debug.apk   # Install on connected device
-adb shell am start -n com.pepperonas.netmonitor/.MainActivity  # Launch
+./gradlew assembleDebug                    # Debug APK → app/build/outputs/apk/debug/
+./gradlew assembleRelease                  # Signed release APK (needs signing config)
+./gradlew test                             # Unit tests
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb shell am start -n com.pepperonas.netmonitor/.MainActivity
 ```
 
-**Signing** (release builds): Set env vars `RELEASE_STORE_FILE`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`. Keystore: `netmonitor-release.jks` in `~/My Drive/dev/keystore/netmonitor-keystore/`, alias `netmonitor`. CI uses GitHub Secrets via `.github/workflows/release.yml`.
+**Signing:** Checks env vars first (`RELEASE_STORE_FILE`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`), falls back to `local.properties`. Keystore: `netmonitor-release.jks` in `~/My Drive/dev/keystore/netmonitor-keystore/`. CI uses base64-encoded keystore in GitHub Secrets.
 
 ## Release Process
 
-1. Bump `versionName` and `versionCode` in `app/build.gradle.kts`
-2. Update version badge in `README.md` and `CHANGELOG.md`
+1. Bump `versionCode` and `versionName` in `app/build.gradle.kts`
+2. Update version badge in `README.md`
 3. Commit, tag: `git tag v<version> && git push origin v<version>`
 
-The `v*` tag triggers the GitHub Actions workflow to build signed APKs and create a GitHub Release.
+The `v*` tag triggers `.github/workflows/release.yml` to build signed APKs and create a GitHub Release.
 
 ## Architecture
 
-Single-module Kotlin/Compose Android app. Package: `com.pepperonas.netmonitor`. No DI framework.
+Single-module Kotlin/Compose app. Package: `com.pepperonas.netmonitor`. No DI framework.
 
-### Database (Room v2)
+### Data flow
 
-- `SpeedSample` -- per-second speed measurements (7-day retention)
-- `DailyTrafficSummary` -- daily aggregate (365-day retention)
-- `SpeedTestResult` -- speed test history (50 most recent)
-- Migration v1->v2 adds `speed_test_results` table
+```
+TrafficStats (system API)
+  → TrafficMonitor.sample() [1 Hz]
+  → NetworkMonitorService (foreground, Handler-based loop)
+      ├→ SpeedIconRenderer → dual notifications (ALPHA_8 bitmaps)
+      └→ TrafficRepository.recordSample()
+           ├→ SpeedSampleDao (per-second, 7-day retention)
+           └→ DailyTrafficDao (daily aggregate, 365-day retention)
+  → MainViewModel (StateFlow)
+      → Compose UI (collectAsStateWithLifecycle)
+```
 
-### Service state is reactive
+`NetMonitorApplication` holds lazy singletons: `database`, `repository`, `settingsStore`. ViewModel accesses them via `(application as NetMonitorApplication).repository`.
 
-`NetworkMonitorService.isRunning` is a `StateFlow<Boolean>` (not a plain var). The ViewModel exposes it as `isServiceRunning`, and MainScreen collects it with `collectAsStateWithLifecycle()`. This ensures the UI toggle button always reflects actual service state.
+### Database (Room, version 2)
 
-### Two separate notification channels
+Three entities: `SpeedSample`, `DailyTrafficSummary`, `SpeedTestResult`. Migration v1→v2 adds `speed_test_results` table. Database file: `netmonitor.db`, `exportSchema = false`.
 
-Samsung One UI bundles notifications from the same channel. To keep download and upload icons separate in the status bar, they use distinct channels: `net_monitor_download` (ID 1) and `net_monitor_upload` (ID 2). Download is forced left via `setWhen(Long.MAX_VALUE)`.
+**Retention:** `TrafficRepository.cleanup()` deletes speed samples >7 days, daily summaries >365 days, keeps last 50 speed test results.
+
+### Service & notifications
+
+`NetworkMonitorService` uses a `Handler` loop (not coroutines) for 1 Hz updates. Two separate notification channels (`net_monitor_download` ID 1, `net_monitor_upload` ID 2) because Samsung One UI bundles same-channel notifications. Download forced left via `setWhen(Long.MAX_VALUE)` + `setSortKey("a")`.
+
+Service state is a companion `StateFlow<Boolean>`, not a var. The ViewModel exposes it directly so the toggle button is always in sync even when the service is stopped externally.
+
+Auto-start is in `onCreate` (not `onResume`) so manually stopping the service via notification won't restart it when returning to the app.
 
 ### Speed format convention
 
-No unit text in status bar icons. The number format encodes the unit:
-- Whole number (e.g. `42`) = KB/s
-- Number with comma (e.g. `4,2`) = MB/s
+Status bar icons show only a number — the format encodes the unit:
+- Whole number (`42`) = KB/s
+- Comma decimal (`4,2`) = MB/s (German locale, comma separator)
 
-Values below 1 KB/s round up to KB. `TrafficMonitor.formatSpeedParts()` returns `FormattedSpeed(value, unit)` with comma as decimal separator for MB/s.
-
-### Icon rendering
-
-`SpeedIconRenderer` is a Kotlin `object` that renders into 96x96 `Bitmap.Config.ALPHA_8` bitmaps (alpha-mask, required by Android notification small icons). Single reused `Paint` with `sans-serif-black` bold, `FILL_AND_STROKE`, auto-fit text sizing up to 88px.
-
-### Auto-start
-
-Monitoring starts automatically in `MainActivity.onCreate()` (not `onResume`), so manually stopping the service won't cause it to restart when returning to the app.
+`SpeedIconRenderer` renders into 96×96 `ALPHA_8` bitmaps (Android notification requirement). Single reused `Paint`, auto-fit text sizing.
 
 ### Navigation
 
-Bottom navigation with 5 tabs: Live, Stats, Speed Test, Apps, Settings. Routes defined in `AppNavigation.kt` `Screen` sealed class.
+5 tabs via `AppNavigation.kt`: Live (`live`), Stats (`stats`), Speed Test (`speedtest`), Apps (`apps`), Settings (`settings`). Each tab defined as `Screen` sealed class with route, `@StringRes` title, icon. State saved/restored across tab switches.
 
 ## Key Conventions
 
-- **i18n** -- All user-facing strings use `stringResource(R.string.*)`. English in `values/strings.xml`, German in `values-de/strings.xml`
-- **Update rate**: 1 Hz (1000ms) for both service notifications and in-app speed display
-- **Foreground service type**: `specialUse` (required for Android 14+)
-- **Compose BOM 2024.01.00** -- use `Divider` not `HorizontalDivider` (newer API not available in this BOM version)
-- **Charts** -- Custom Canvas-based (no charting libraries). SpeedGraph for live line chart, HourlyBarChart and DailyBarChart for statistics
-- **Settings** -- DataStore Preferences in `SettingsStore.kt`. All settings exposed as `Flow` and collected in ViewModel
+- **i18n** — All user-facing strings via `stringResource(R.string.*)`. English default in `values/strings.xml`, German in `values-de/strings.xml`. Always add to both.
+- **Compose BOM 2024.01.00** — Use `Divider` not `HorizontalDivider` (newer API not in this BOM).
+- **Charts** — Custom Canvas-based composables, no charting libraries. `SpeedGraph` (line), `HourlyBarChart`/`DailyBarChart` (bars).
+- **Settings** — `SettingsStore` wraps DataStore Preferences. All settings are `Flow`, collected in ViewModel via `stateIn(WhileSubscribed(5000))`.
+- **Speed test** — `SpeedTestEngine` uses `HttpURLConnection` against public endpoints (Hetzner, OVH, Tele2). 10s download, 8s upload, 5× latency pings. Progress via `StateFlow<Progress>`.
+- **Foreground service type** — `specialUse` (required for Android 14+).
+- **WiFi info** — Requires `ACCESS_WIFI_STATE` permission. `NetworkInfoProvider.getWifiDetails()` is wrapped in try-catch for SecurityException fallback.
+- **TrafficStats values are cumulative** — The monitor computes deltas per second. Per-app traffic via `getUidRxBytes(uid)` resets on reboot.
