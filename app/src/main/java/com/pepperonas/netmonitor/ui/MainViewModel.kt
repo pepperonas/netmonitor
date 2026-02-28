@@ -1,8 +1,13 @@
 package com.pepperonas.netmonitor.ui
 
+import android.app.AppOpsManager
 import android.app.Application
+import android.app.usage.NetworkStats
+import android.app.usage.NetworkStatsManager
 import android.content.pm.PackageManager
+import android.net.ConnectivityManager
 import android.net.TrafficStats
+import android.os.Process
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pepperonas.netmonitor.NetMonitorApplication
@@ -44,6 +49,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _appTraffic = MutableStateFlow<List<AppTrafficInfo>>(emptyList())
     val appTraffic: StateFlow<List<AppTrafficInfo>> = _appTraffic
+
+    private val _hasUsageAccess = MutableStateFlow(false)
+    val hasUsageAccess: StateFlow<Boolean> = _hasUsageAccess
 
     private val _networkDetails = MutableStateFlow(NetworkInfoProvider.getDetails(application))
     val networkDetails: StateFlow<NetworkDetails> = _networkDetails
@@ -114,27 +122,109 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         speedJob?.cancel()
     }
 
+    fun checkUsageAccess() {
+        val app = getApplication<Application>()
+        val appOps = app.getSystemService(AppOpsManager::class.java)
+        val mode = appOps.unsafeCheckOpNoThrow(
+            AppOpsManager.OPSTR_GET_USAGE_STATS,
+            Process.myUid(),
+            app.packageName
+        )
+        _hasUsageAccess.value = mode == AppOpsManager.MODE_ALLOWED
+    }
+
     fun loadAppTraffic() {
         viewModelScope.launch(Dispatchers.IO) {
-            val pm = getApplication<Application>().packageManager
-            val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
+            val app = getApplication<Application>()
+            val pm = app.packageManager
+            checkUsageAccess()
 
-            val list = apps.mapNotNull { info ->
-                val rx = TrafficStats.getUidRxBytes(info.uid)
-                val tx = TrafficStats.getUidTxBytes(info.uid)
+            if (_hasUsageAccess.value) {
+                loadAppTrafficViaNetworkStats(app, pm)
+            } else {
+                loadAppTrafficViaTrafficStats(pm)
+            }
+        }
+    }
+
+    private fun loadAppTrafficViaNetworkStats(app: Application, pm: PackageManager) {
+        try {
+            val nsm = app.getSystemService(NetworkStatsManager::class.java)
+            val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
+            val uidToApp = apps.associateBy { it.uid }
+
+            // Query since device boot for consistency with TrafficStats
+            val end = System.currentTimeMillis()
+            val start = end - 30L * 24 * 60 * 60 * 1000 // Last 30 days
+
+            val uidTraffic = mutableMapOf<Int, Pair<Long, Long>>() // uid -> (rx, tx)
+
+            // Query WiFi
+            queryNetworkStats(nsm, ConnectivityManager.TYPE_WIFI, start, end, uidTraffic)
+            // Query Mobile
+            queryNetworkStats(nsm, ConnectivityManager.TYPE_MOBILE, start, end, uidTraffic)
+
+            val list = uidTraffic.mapNotNull { (uid, traffic) ->
+                val (rx, tx) = traffic
                 if (rx <= 0 && tx <= 0) return@mapNotNull null
+                val appInfo = uidToApp[uid] ?: return@mapNotNull null
 
                 AppTrafficInfo(
-                    appName = pm.getApplicationLabel(info).toString(),
-                    packageName = info.packageName,
-                    uid = info.uid,
-                    rxBytes = rx.coerceAtLeast(0),
-                    txBytes = tx.coerceAtLeast(0)
+                    appName = pm.getApplicationLabel(appInfo).toString(),
+                    packageName = appInfo.packageName,
+                    uid = uid,
+                    rxBytes = rx,
+                    txBytes = tx
                 )
             }.sortedByDescending { it.rxBytes + it.txBytes }
 
             _appTraffic.value = list
+        } catch (_: Exception) {
+            // Fallback to TrafficStats
+            loadAppTrafficViaTrafficStats(pm)
         }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun queryNetworkStats(
+        nsm: NetworkStatsManager,
+        networkType: Int,
+        start: Long,
+        end: Long,
+        result: MutableMap<Int, Pair<Long, Long>>
+    ) {
+        try {
+            val stats = nsm.querySummary(networkType, null, start, end)
+            val bucket = NetworkStats.Bucket()
+            while (stats.hasNextBucket()) {
+                stats.getNextBucket(bucket)
+                val uid = bucket.uid
+                val (prevRx, prevTx) = result.getOrDefault(uid, Pair(0L, 0L))
+                result[uid] = Pair(prevRx + bucket.rxBytes, prevTx + bucket.txBytes)
+            }
+            stats.close()
+        } catch (_: Exception) {
+            // Permission denied or network type not available
+        }
+    }
+
+    private fun loadAppTrafficViaTrafficStats(pm: PackageManager) {
+        val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
+        val list = apps.mapNotNull { info ->
+            val rx = TrafficStats.getUidRxBytes(info.uid)
+            val tx = TrafficStats.getUidTxBytes(info.uid)
+            if (rx <= 0 && tx <= 0) return@mapNotNull null
+
+            AppTrafficInfo(
+                appName = pm.getApplicationLabel(info).toString(),
+                packageName = info.packageName,
+                uid = info.uid,
+                rxBytes = rx.coerceAtLeast(0),
+                txBytes = tx.coerceAtLeast(0)
+            )
+        }.sortedByDescending { it.rxBytes + it.txBytes }
+
+        _appTraffic.value = list
     }
 
     fun setTheme(value: String) {

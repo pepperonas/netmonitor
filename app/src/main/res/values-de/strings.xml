@@ -30,6 +30,8 @@
     <!-- Apps Screen -->
     <string name="app_traffic_title">App-Traffic (seit Neustart)</string>
     <string name="loading_app_data">Lade App-Daten\u2026</string>
+    <string name="usage_access_required">Nutzungszugriff erforderlich, um alle Apps anzuzeigen</string>
+    <string name="grant_permission">Zugriff erlauben</string>
 
     <!-- Stats Screen -->
     <string name="stats_today">Heute</string>

@@ -32,6 +32,8 @@
     <!-- Apps Screen -->
     <string name="app_traffic_title">App traffic (since reboot)</string>
     <string name="loading_app_data">Loading app data\u2026</string>
+    <string name="usage_access_required">Usage access required to show all apps</string>
+    <string name="grant_permission">Grant access</string>
 
     <!-- Stats Screen -->
     <string name="stats_today">Today</string>

@@ -4,6 +4,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.net.Uri
+import android.provider.Settings
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
@@ -115,6 +116,8 @@ fun LiveScreen(
 @Composable
 fun AppsScreen(viewModel: MainViewModel) {
     val appTraffic by viewModel.appTraffic.collectAsStateWithLifecycle()
+    val hasUsageAccess by viewModel.hasUsageAccess.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -122,6 +125,40 @@ fun AppsScreen(viewModel: MainViewModel) {
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item { SectionHeader(stringResource(R.string.app_traffic_title)) }
+
+        if (!hasUsageAccess) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            stringResource(R.string.usage_access_required),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                context.startActivity(
+                                    Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                                )
+                            },
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(stringResource(R.string.grant_permission))
+                        }
+                    }
+                }
+            }
+        }
 
         if (appTraffic.isEmpty()) {
             item {
