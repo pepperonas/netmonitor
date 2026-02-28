@@ -50,9 +50,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val isServiceRunning: StateFlow<Boolean> = NetworkMonitorService.isRunning
 
-    /** Letzte 60 Sekunden Speed-Samples für den Live-Graph */
-    val recentSamples: StateFlow<List<SpeedSample>> = repository
-        .getRecentSamples(60_000L)
+    /** Speed-Samples für den Live-Graph (Zeitfenster aus Settings) */
+    @Suppress("OPT_IN_USAGE")
+    val recentSamples: StateFlow<List<SpeedSample>> = settingsStore.graphWindow
+        .flatMapLatest { windowSec -> repository.getRecentSamples(windowSec * 1000L) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Settings
@@ -104,7 +105,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             while (isActive) {
                 _speed.value = trafficMonitor.sample()
                 _networkDetails.value = NetworkInfoProvider.getDetails(getApplication())
-                delay(1000)
+                delay(updateInterval.value.toLong())
             }
         }
     }
@@ -176,7 +177,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun startSpeedTest() {
         viewModelScope.launch(Dispatchers.IO) {
             speedTestEngine.reset()
-            val result = speedTestEngine.runTest()
+            val result = speedTestEngine.runTest() ?: return@launch
             val connectionType = NetworkInfoProvider.getDetails(getApplication()).connectionType
             speedTestDao.insert(
                 SpeedTestResult(

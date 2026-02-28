@@ -55,6 +55,9 @@ interface SpeedSampleDao {
     """)
     suspend fun getHourlyPeaks(since: Long): List<SpeedSample>
 
+    @Query("SELECT * FROM speed_samples ORDER BY timestamp DESC LIMIT 1")
+    suspend fun getLatest(): SpeedSample?
+
     @Query("DELETE FROM speed_samples WHERE timestamp < :before")
     suspend fun deleteOlderThan(before: Long)
 }

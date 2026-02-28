@@ -180,12 +180,12 @@ private fun SummaryCard(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 StatValue(
-                    label = "Download",
+                    label = stringResource(R.string.download),
                     value = TrafficMonitor.formatBytes(totalRx),
                     color = MaterialTheme.colorScheme.primary
                 )
                 StatValue(
-                    label = "Upload",
+                    label = stringResource(R.string.upload),
                     value = TrafficMonitor.formatBytes(totalTx),
                     color = MaterialTheme.colorScheme.tertiary
                 )

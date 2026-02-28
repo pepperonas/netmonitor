@@ -27,22 +27,40 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.pepperonas.netmonitor.MainActivity
+import com.pepperonas.netmonitor.NetMonitorApplication
 import com.pepperonas.netmonitor.util.TrafficMonitor
 
 class SpeedWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        // Sample current speed
-        val rxBytes = TrafficStats.getTotalRxBytes()
-        val txBytes = TrafficStats.getTotalTxBytes()
+        val totalRx = TrafficStats.getTotalRxBytes()
+        val totalTx = TrafficStats.getTotalTxBytes()
+
+        // Read latest speed sample from database
+        var dlSpeed = 0L
+        var ulSpeed = 0L
+        try {
+            val app = context.applicationContext as NetMonitorApplication
+            val latest = app.database.speedSampleDao().getLatest()
+            if (latest != null) {
+                // Only show speed if sample is recent (< 5 seconds old)
+                val age = System.currentTimeMillis() - latest.timestamp
+                if (age < 5000) {
+                    dlSpeed = latest.rxBytesPerSec
+                    ulSpeed = latest.txBytesPerSec
+                }
+            }
+        } catch (_: Exception) {
+            // Database not available, show 0
+        }
 
         provideContent {
             GlanceTheme {
                 SpeedWidgetContent(
-                    downloadSpeed = TrafficMonitor.formatSpeed(0),
-                    uploadSpeed = TrafficMonitor.formatSpeed(0),
-                    totalRx = TrafficMonitor.formatBytes(rxBytes),
-                    totalTx = TrafficMonitor.formatBytes(txBytes)
+                    downloadSpeed = TrafficMonitor.formatSpeed(dlSpeed),
+                    uploadSpeed = TrafficMonitor.formatSpeed(ulSpeed),
+                    totalRx = TrafficMonitor.formatBytes(totalRx),
+                    totalTx = TrafficMonitor.formatBytes(totalTx)
                 )
             }
         }

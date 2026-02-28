@@ -38,8 +38,10 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pepperonas.netmonitor.R
 import com.pepperonas.netmonitor.data.entity.SpeedSample
 import com.pepperonas.netmonitor.util.TrafficMonitor
 
@@ -90,14 +92,14 @@ fun SpeedGraph(
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Geschwindigkeit",
+                    stringResource(R.string.speed_label),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.weight(1f))
-                LegendDot(color = dlColor, label = "DL")
+                LegendDot(color = dlColor, label = stringResource(R.string.graph_dl))
                 Spacer(Modifier.width(12.dp))
-                LegendDot(color = ulColor, label = "UL")
+                LegendDot(color = ulColor, label = stringResource(R.string.graph_ul))
             }
 
             Spacer(Modifier.height(8.dp))

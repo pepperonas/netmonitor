@@ -5,6 +5,7 @@ import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import androidx.core.content.ContextCompat
+import com.pepperonas.netmonitor.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -47,10 +48,12 @@ class MonitorTileService : TileService() {
     private fun updateTile(isRunning: Boolean) {
         val tile = qsTile ?: return
         tile.state = if (isRunning) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-        tile.label = "NetMonitor"
-        tile.subtitle = if (isRunning) "Aktiv" else "Inaktiv"
+        tile.label = getString(R.string.app_name)
+        tile.subtitle = getString(if (isRunning) R.string.tile_active else R.string.tile_inactive)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            tile.stateDescription = if (isRunning) "Monitoring aktiv" else "Monitoring inaktiv"
+            tile.stateDescription = getString(
+                if (isRunning) R.string.tile_monitoring_active else R.string.tile_monitoring_inactive
+            )
         }
         tile.updateTile()
     }

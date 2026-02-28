@@ -26,8 +26,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pepperonas.netmonitor.R
 import com.pepperonas.netmonitor.util.NetworkDetails
 
 @Composable
@@ -50,7 +52,7 @@ fun NetworkInfoCard(details: NetworkDetails) {
                         "vpn" -> Icons.Default.VpnKey
                         else -> Icons.Default.SignalWifiOff
                     },
-                    contentDescription = "Verbindung",
+                    contentDescription = stringResource(R.string.connection),
                     modifier = Modifier.size(28.dp),
                     tint = if (details.connectionIcon == "none")
                         MaterialTheme.colorScheme.error
@@ -65,7 +67,7 @@ fun NetworkInfoCard(details: NetworkDetails) {
                     )
                     if (details.isVpn) {
                         Text(
-                            "VPN aktiv",
+                            stringResource(R.string.vpn_active),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.tertiary
                         )
@@ -78,7 +80,7 @@ fun NetworkInfoCard(details: NetworkDetails) {
             // WiFi-Details
             if (details.connectionIcon == "wifi") {
                 details.wifiSsid?.let { ssid ->
-                    InfoRow("Netzwerk", ssid)
+                    InfoRow(stringResource(R.string.network_name), ssid)
                 }
                 details.wifiSignalLevel?.let { level ->
                     Row(
@@ -87,7 +89,7 @@ fun NetworkInfoCard(details: NetworkDetails) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            "Signal",
+                            stringResource(R.string.signal),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -110,23 +112,23 @@ fun NetworkInfoCard(details: NetworkDetails) {
                     Spacer(Modifier.height(4.dp))
                 }
                 details.wifiLinkSpeed?.let { speed ->
-                    InfoRow("Verbindung", "$speed Mbps")
+                    InfoRow(stringResource(R.string.link_speed), "$speed Mbps")
                 }
             }
 
             // Mobile Details
             if (details.connectionIcon == "mobile") {
                 details.mobileCarrier?.let { carrier ->
-                    InfoRow("Anbieter", carrier)
+                    InfoRow(stringResource(R.string.carrier), carrier)
                 }
                 details.mobileNetworkType?.let { type ->
-                    InfoRow("Netz", type)
+                    InfoRow(stringResource(R.string.network_type), type)
                 }
             }
 
             // IP-Adresse (immer anzeigen wenn verfügbar)
             details.localIp?.let { ip ->
-                InfoRow("IP-Adresse", ip)
+                InfoRow(stringResource(R.string.ip_address), ip)
             }
         }
     }

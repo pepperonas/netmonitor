@@ -4,7 +4,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
-import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -16,7 +15,7 @@ class SpeedTestEngine {
         val currentSpeedBps: Long = 0
     )
 
-    enum class Phase { IDLE, LATENCY, DOWNLOAD, UPLOAD, DONE }
+    enum class Phase { IDLE, LATENCY, DOWNLOAD, UPLOAD, DONE, ERROR }
 
     data class Result(
         val downloadBytesPerSec: Long,
@@ -35,38 +34,59 @@ class SpeedTestEngine {
             "https://proof.ovh.net/files/100Mb.dat",
             "https://speedtest.tele2.net/10MB.zip"
         )
-        private const val UPLOAD_URL = "https://speed.hetzner.de/upload.php"
+        private val UPLOAD_URLS = listOf(
+            "https://speedtest.tele2.net/upload.php",
+            "https://speed.hetzner.de/upload.php",
+            "https://proof.ovh.net/files/upload.php"
+        )
+        // Small files for latency pings (minimal data transfer)
+        private val LATENCY_URLS = listOf(
+            "https://speedtest.tele2.net/1KB.zip",
+            "https://speed.hetzner.de/100MB.bin",
+            "https://proof.ovh.net/files/1Mb.dat"
+        )
         private const val DOWNLOAD_DURATION_MS = 10_000L
         private const val UPLOAD_DURATION_MS = 8_000L
         private const val BUFFER_SIZE = 65536
         private const val LATENCY_PINGS = 5
     }
 
-    suspend fun runTest(): Result = withContext(Dispatchers.IO) {
-        _progress.value = Progress(Phase.LATENCY, 0f)
+    suspend fun runTest(): Result? = withContext(Dispatchers.IO) {
+        try {
+            _progress.value = Progress(Phase.LATENCY, 0f)
 
-        // 1. Latency test
-        val latency = measureLatency()
-        _progress.value = Progress(Phase.LATENCY, 1f)
+            // 1. Latency test
+            val latency = measureLatency()
+            _progress.value = Progress(Phase.LATENCY, 1f)
 
-        // 2. Download test
-        _progress.value = Progress(Phase.DOWNLOAD, 0f)
-        val (dlSpeed, serverUrl) = measureDownload()
-        _progress.value = Progress(Phase.DOWNLOAD, 1f, dlSpeed)
+            // 2. Download test
+            _progress.value = Progress(Phase.DOWNLOAD, 0f)
+            val (dlSpeed, serverUrl) = measureDownload()
+            _progress.value = Progress(Phase.DOWNLOAD, 1f, dlSpeed)
 
-        // 3. Upload test
-        _progress.value = Progress(Phase.UPLOAD, 0f)
-        val ulSpeed = measureUpload()
-        _progress.value = Progress(Phase.UPLOAD, 1f, ulSpeed)
+            // Check if download completely failed (no server reachable)
+            if (dlSpeed == 0L && latency == -1L) {
+                _progress.value = Progress(Phase.ERROR, 0f)
+                return@withContext null
+            }
 
-        _progress.value = Progress(Phase.DONE, 1f)
+            // 3. Upload test
+            _progress.value = Progress(Phase.UPLOAD, 0f)
+            val ulSpeed = measureUpload()
+            _progress.value = Progress(Phase.UPLOAD, 1f, ulSpeed)
 
-        Result(
-            downloadBytesPerSec = dlSpeed,
-            uploadBytesPerSec = ulSpeed,
-            latencyMs = latency,
-            serverUrl = serverUrl
-        )
+            _progress.value = Progress(Phase.DONE, 1f)
+
+            Result(
+                downloadBytesPerSec = dlSpeed,
+                uploadBytesPerSec = ulSpeed,
+                latencyMs = latency,
+                serverUrl = serverUrl
+            )
+        } catch (_: Exception) {
+            _progress.value = Progress(Phase.ERROR, 0f)
+            null
+        }
     }
 
     fun reset() {
@@ -74,26 +94,51 @@ class SpeedTestEngine {
     }
 
     private fun measureLatency(): Long {
+        // Find a working server first
+        var workingUrl = LATENCY_URLS.first()
+        for (urlStr in LATENCY_URLS) {
+            var conn: HttpURLConnection? = null
+            try {
+                conn = URL(urlStr).openConnection() as HttpURLConnection
+                conn.requestMethod = "GET"
+                conn.connectTimeout = 3000
+                conn.readTimeout = 3000
+                conn.setRequestProperty("Range", "bytes=0-0")
+                conn.connect()
+                conn.responseCode
+                workingUrl = urlStr
+                break
+            } catch (_: Exception) {
+                continue
+            } finally {
+                conn?.disconnect()
+            }
+        }
+
         val times = mutableListOf<Long>()
         repeat(LATENCY_PINGS) { i ->
             try {
-                val url = URL(DOWNLOAD_URLS.first())
-                val conn = url.openConnection() as HttpURLConnection
-                conn.requestMethod = "HEAD"
-                conn.connectTimeout = 5000
-                conn.readTimeout = 5000
+                val c = URL(workingUrl).openConnection() as HttpURLConnection
+                try {
+                    c.requestMethod = "GET"
+                    c.connectTimeout = 5000
+                    c.readTimeout = 5000
+                    c.setRequestProperty("Range", "bytes=0-0")
+                    c.setRequestProperty("Cache-Control", "no-cache")
 
-                val start = System.nanoTime()
-                conn.connect()
-                conn.responseCode
-                val elapsed = (System.nanoTime() - start) / 1_000_000
-                times.add(elapsed)
-                conn.disconnect()
+                    val start = System.nanoTime()
+                    c.connect()
+                    c.responseCode
+                    val elapsed = (System.nanoTime() - start) / 1_000_000
+                    times.add(elapsed)
 
-                _progress.value = Progress(
-                    Phase.LATENCY,
-                    (i + 1).toFloat() / LATENCY_PINGS
-                )
+                    _progress.value = Progress(
+                        Phase.LATENCY,
+                        (i + 1).toFloat() / LATENCY_PINGS
+                    )
+                } finally {
+                    c.disconnect()
+                }
             } catch (_: Exception) {
                 // skip failed ping
             }
@@ -103,13 +148,11 @@ class SpeedTestEngine {
 
     private fun measureDownload(): Pair<Long, String> {
         val buffer = ByteArray(BUFFER_SIZE)
-        var bestSpeed = 0L
-        var bestUrl = DOWNLOAD_URLS.first()
 
         for (urlStr in DOWNLOAD_URLS) {
+            var conn: HttpURLConnection? = null
             try {
-                val url = URL(urlStr)
-                val conn = url.openConnection() as HttpURLConnection
+                conn = URL(urlStr).openConnection() as HttpURLConnection
                 conn.connectTimeout = 5000
                 conn.readTimeout = 10000
                 conn.setRequestProperty("Cache-Control", "no-cache")
@@ -138,65 +181,69 @@ class SpeedTestEngine {
                     }
                 }
 
-                conn.disconnect()
-
                 val totalElapsed = (System.currentTimeMillis() - startTime) / 1000f
                 val speed = if (totalElapsed > 0) (totalBytes / totalElapsed).toLong() else 0L
-                if (speed > bestSpeed) {
-                    bestSpeed = speed
-                    bestUrl = urlStr
-                }
-                break // First successful server is enough
+                if (speed > 0) return Pair(speed, urlStr)
             } catch (_: Exception) {
                 continue // Try next server
+            } finally {
+                conn?.disconnect()
             }
         }
 
-        return Pair(bestSpeed, bestUrl)
+        return Pair(0L, DOWNLOAD_URLS.first())
     }
 
     private fun measureUpload(): Long {
-        return try {
-            val url = URL(UPLOAD_URL)
-            val conn = url.openConnection() as HttpURLConnection
-            conn.requestMethod = "POST"
-            conn.doOutput = true
-            conn.connectTimeout = 5000
-            conn.readTimeout = 15000
-            conn.setRequestProperty("Content-Type", "application/octet-stream")
-            conn.setChunkedStreamingMode(BUFFER_SIZE)
+        val data = ByteArray(BUFFER_SIZE)
 
-            val data = ByteArray(BUFFER_SIZE)
-            val startTime = System.currentTimeMillis()
-            var totalBytes = 0L
+        for (urlStr in UPLOAD_URLS) {
+            var conn: HttpURLConnection? = null
+            try {
+                conn = URL(urlStr).openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.doOutput = true
+                conn.connectTimeout = 5000
+                conn.readTimeout = 15000
+                conn.setRequestProperty("Content-Type", "application/octet-stream")
+                conn.setChunkedStreamingMode(BUFFER_SIZE)
 
-            conn.outputStream.use { output ->
-                while (true) {
-                    val elapsed = System.currentTimeMillis() - startTime
-                    if (elapsed >= UPLOAD_DURATION_MS) break
+                val startTime = System.currentTimeMillis()
+                var totalBytes = 0L
 
-                    output.write(data)
-                    totalBytes += data.size
+                conn.outputStream.use { output ->
+                    while (true) {
+                        val elapsed = System.currentTimeMillis() - startTime
+                        if (elapsed >= UPLOAD_DURATION_MS) break
 
-                    val elapsedSec = elapsed / 1000f
-                    if (elapsedSec > 0) {
-                        val currentSpeed = (totalBytes / elapsedSec).toLong()
-                        _progress.value = Progress(
-                            Phase.UPLOAD,
-                            (elapsed.toFloat() / UPLOAD_DURATION_MS).coerceAtMost(1f),
-                            currentSpeed
-                        )
+                        output.write(data)
+                        output.flush()
+                        totalBytes += data.size
+
+                        val elapsedSec = elapsed / 1000f
+                        if (elapsedSec > 0) {
+                            val currentSpeed = (totalBytes / elapsedSec).toLong()
+                            _progress.value = Progress(
+                                Phase.UPLOAD,
+                                (elapsed.toFloat() / UPLOAD_DURATION_MS).coerceAtMost(1f),
+                                currentSpeed
+                            )
+                        }
                     }
                 }
+
+                // Read response to ensure data was sent
+                conn.responseCode
+
+                val totalElapsed = (System.currentTimeMillis() - startTime) / 1000f
+                val speed = if (totalElapsed > 0) (totalBytes / totalElapsed).toLong() else 0L
+                if (speed > 0) return speed
+            } catch (_: Exception) {
+                continue // Try next server
+            } finally {
+                conn?.disconnect()
             }
-
-            conn.responseCode // flush
-            conn.disconnect()
-
-            val totalElapsed = (System.currentTimeMillis() - startTime) / 1000f
-            if (totalElapsed > 0) (totalBytes / totalElapsed).toLong() else 0L
-        } catch (_: Exception) {
-            0L
         }
+        return 0L
     }
 }

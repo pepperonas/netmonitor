@@ -17,7 +17,9 @@ import androidx.core.app.NotificationCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.pepperonas.netmonitor.MainActivity
 import com.pepperonas.netmonitor.NetMonitorApplication
+import com.pepperonas.netmonitor.R
 import com.pepperonas.netmonitor.util.SpeedIconRenderer
+import com.pepperonas.netmonitor.widget.SpeedWidget
 import com.pepperonas.netmonitor.util.TrafficMonitor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,13 +28,16 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import androidx.glance.appwidget.updateAll
 
 class NetworkMonitorService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private val trafficMonitor = TrafficMonitor()
     private lateinit var notificationManager: NotificationManager
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var notificationStyle = "both"
 
     private val updateRunnable = object : Runnable {
         override fun run() {
@@ -67,6 +72,15 @@ class NetworkMonitorService : Service() {
         notificationManager.notify(NOTIFICATION_ID_UP, buildUploadNotification(TrafficMonitor.Speed(0, 0)))
         _isRunning.value = true
         handler.post(updateRunnable)
+
+        // Observe notification style setting
+        val settingsStore = (application as NetMonitorApplication).settingsStore
+        serviceScope.launch {
+            settingsStore.notificationStyle.collect { style ->
+                notificationStyle = style
+            }
+        }
+
         return START_STICKY
     }
 
@@ -80,11 +94,18 @@ class NetworkMonitorService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    private var widgetUpdateCounter = 0
+
     private fun persistSample(speed: TrafficMonitor.Speed) {
         val repo = (application as NetMonitorApplication).repository
         val connType = getConnectionType()
         serviceScope.launch {
             repo.recordSample(speed.rxBytesPerSec, speed.txBytesPerSec, connType)
+            // Update widget every 2 seconds (not every sample to reduce overhead)
+            widgetUpdateCounter++
+            if (widgetUpdateCounter % 2 == 0) {
+                SpeedWidget().updateAll(this@NetworkMonitorService)
+            }
         }
     }
 
@@ -103,15 +124,15 @@ class NetworkMonitorService : Service() {
 
     private fun createNotificationChannels() {
         val downChannel = NotificationChannel(
-            CHANNEL_ID_DOWN, "Download-Geschwindigkeit", NotificationManager.IMPORTANCE_LOW
+            CHANNEL_ID_DOWN, getString(R.string.channel_download), NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "Zeigt aktuelle Download-Geschwindigkeit"
+            description = getString(R.string.channel_download_desc)
             setShowBadge(false)
         }
         val upChannel = NotificationChannel(
-            CHANNEL_ID_UP, "Upload-Geschwindigkeit", NotificationManager.IMPORTANCE_LOW
+            CHANNEL_ID_UP, getString(R.string.channel_upload), NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "Zeigt aktuelle Upload-Geschwindigkeit"
+            description = getString(R.string.channel_upload_desc)
             setShowBadge(false)
         }
         notificationManager.createNotificationChannel(downChannel)
@@ -125,7 +146,7 @@ class NetworkMonitorService : Service() {
         return baseBuilder(CHANNEL_ID_DOWN)
             .setSmallIcon(IconCompat.createWithBitmap(icon))
             .setContentTitle("\u2193 ${parts.value} ${parts.unit}")
-            .setContentText("Download")
+            .setContentText(getString(R.string.download))
             .setWhen(Long.MAX_VALUE)
             .setShowWhen(false)
             .setSortKey("a")
@@ -139,7 +160,7 @@ class NetworkMonitorService : Service() {
         return baseBuilder(CHANNEL_ID_UP)
             .setSmallIcon(IconCompat.createWithBitmap(icon))
             .setContentTitle("\u2191 ${parts.value} ${parts.unit}")
-            .setContentText("Upload")
+            .setContentText(getString(R.string.upload))
             .setWhen(Long.MAX_VALUE - 1)
             .setShowWhen(false)
             .setSortKey("b")
@@ -160,7 +181,7 @@ class NetworkMonitorService : Service() {
 
         return NotificationCompat.Builder(this, channelId)
             .setContentIntent(openIntent)
-            .addAction(0, "Stopp", stopIntent)
+            .addAction(0, getString(R.string.notification_stop), stopIntent)
             .setOngoing(true)
             .setSilent(true)
             .setOnlyAlertOnce(true)
@@ -169,8 +190,20 @@ class NetworkMonitorService : Service() {
     }
 
     private fun updateNotifications(speed: TrafficMonitor.Speed) {
-        notificationManager.notify(NOTIFICATION_ID_DOWN, buildDownloadNotification(speed))
-        notificationManager.notify(NOTIFICATION_ID_UP, buildUploadNotification(speed))
+        when (notificationStyle) {
+            "download" -> {
+                notificationManager.notify(NOTIFICATION_ID_DOWN, buildDownloadNotification(speed))
+                notificationManager.cancel(NOTIFICATION_ID_UP)
+            }
+            "upload" -> {
+                notificationManager.notify(NOTIFICATION_ID_DOWN, buildUploadNotification(speed))
+                notificationManager.cancel(NOTIFICATION_ID_UP)
+            }
+            else -> {
+                notificationManager.notify(NOTIFICATION_ID_DOWN, buildDownloadNotification(speed))
+                notificationManager.notify(NOTIFICATION_ID_UP, buildUploadNotification(speed))
+            }
+        }
     }
 
     companion object {

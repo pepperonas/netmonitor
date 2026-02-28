@@ -60,7 +60,9 @@ import java.util.Locale
 fun SpeedTestScreen(viewModel: MainViewModel) {
     val progress by viewModel.speedTestProgress.collectAsStateWithLifecycle()
     val results by viewModel.speedTestResults.collectAsStateWithLifecycle()
-    val isRunning = progress.phase != SpeedTestEngine.Phase.IDLE && progress.phase != SpeedTestEngine.Phase.DONE
+    val isRunning = progress.phase != SpeedTestEngine.Phase.IDLE
+            && progress.phase != SpeedTestEngine.Phase.DONE
+            && progress.phase != SpeedTestEngine.Phase.ERROR
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -69,6 +71,26 @@ fun SpeedTestScreen(viewModel: MainViewModel) {
     ) {
         // Gauge + current state
         item { SpeedGauge(progress) }
+
+        // Error message
+        if (progress.phase == SpeedTestEngine.Phase.ERROR) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Text(
+                        stringResource(R.string.speed_test_error),
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+        }
 
         // Start button
         item {
@@ -123,6 +145,7 @@ private fun SpeedGauge(progress: SpeedTestEngine.Progress) {
         SpeedTestEngine.Phase.DOWNLOAD -> primaryColor
         SpeedTestEngine.Phase.UPLOAD -> tertiaryColor
         SpeedTestEngine.Phase.LATENCY -> MaterialTheme.colorScheme.secondary
+        SpeedTestEngine.Phase.ERROR -> MaterialTheme.colorScheme.error
         else -> primaryColor
     }
 
@@ -190,6 +213,7 @@ private fun SpeedGauge(progress: SpeedTestEngine.Progress) {
                             SpeedTestEngine.Phase.DOWNLOAD -> stringResource(R.string.speed_test_download)
                             SpeedTestEngine.Phase.UPLOAD -> stringResource(R.string.speed_test_upload)
                             SpeedTestEngine.Phase.DONE -> stringResource(R.string.speed_test_done)
+                            SpeedTestEngine.Phase.ERROR -> stringResource(R.string.speed_test_ready)
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -242,7 +266,7 @@ private fun ResultCard(result: SpeedTestResult) {
                 ResultValue(
                     icon = Icons.Default.Timer,
                     label = stringResource(R.string.speed_test_ping),
-                    value = "${result.latencyMs} ms",
+                    value = if (result.latencyMs >= 0) "${result.latencyMs} ms" else "– ms",
                     color = MaterialTheme.colorScheme.secondary
                 )
             }
@@ -301,7 +325,7 @@ private fun HistoryRow(result: SpeedTestResult) {
                 }
             }
             Text(
-                "${result.latencyMs} ms",
+                if (result.latencyMs >= 0) "${result.latencyMs} ms" else "– ms",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

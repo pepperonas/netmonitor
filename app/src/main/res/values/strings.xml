@@ -105,6 +105,7 @@
     <string name="speed_test_result">Result</string>
     <string name="speed_test_ping">Ping</string>
     <string name="speed_test_history">History</string>
+    <string name="speed_test_error">Connection failed. Check your internet connection and try again.</string>
 
     <!-- Widget -->
     <string name="widget_description">Shows current network speed and total traffic</string>

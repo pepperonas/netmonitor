@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://developer.android.com/about/versions/oreo"><img src="https://img.shields.io/badge/minSdk-26-brightgreen" alt="minSdk 26" /></a>
   <a href="https://developer.android.com/about/versions/14"><img src="https://img.shields.io/badge/targetSdk-34-blue" alt="targetSdk 34" /></a>
-  <img src="https://img.shields.io/badge/version-0.4.1-orange" alt="Version 0.4.0" />
+  <img src="https://img.shields.io/badge/version-0.5.0-orange" alt="Version 0.5.0" />
   <img src="https://img.shields.io/badge/Kotlin-1.9.22-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin" />
   <img src="https://img.shields.io/badge/Jetpack_Compose-Material_3-4285F4?logo=jetpackcompose&logoColor=white" alt="Compose" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License" /></a>
@@ -108,7 +108,7 @@ com.pepperonas.netmonitor/
 | `SpeedIconRenderer` | Kotlin `object` that creates `Bitmap.Config.ALPHA_8` icons (96x96 px). Auto-scales text size to fit. Uses `sans-serif-black` bold with `FILL_AND_STROKE` for maximum visibility. |
 | `NetworkMonitorService` | Foreground service (`specialUse` type). Posts two notifications: download (ID 1, always left) and upload (ID 2, always right). 1 Hz update loop. Persists samples to Room. |
 | `TrafficRepository` | Records speed samples, maintains daily summaries with peak values, provides Flow-based queries for UI, handles data cleanup (7-day detail, 365-day summary retention). |
-| `SpeedTestEngine` | Measures download speed (HTTP GET from Hetzner/OVH/Tele2), upload speed (HTTP POST), and latency (HEAD requests). Reports real-time progress via StateFlow. |
+| `SpeedTestEngine` | Measures download speed (HTTP GET from Hetzner/OVH/Tele2), upload speed (HTTP POST with server fallback), and latency (GET with Range header, multi-server). Reports real-time progress via StateFlow with error state on failure. |
 | `SettingsStore` | DataStore Preferences for theme, update rate, notification style, auto-start, graph window, data budget, and warning threshold. |
 
 ## Build
@@ -151,6 +151,7 @@ Requires Android SDK. Set `ANDROID_HOME` or create `local.properties` with `sdk.
 | `FOREGROUND_SERVICE` | Keep the monitoring service running in the background |
 | `FOREGROUND_SERVICE_SPECIAL_USE` | Required since Android 14 for non-standard foreground services |
 | `POST_NOTIFICATIONS` | Display speed notifications (runtime permission on Android 13+) |
+| `ACCESS_WIFI_STATE` | Read WiFi details (SSID, signal strength, link speed) |
 | `QUERY_ALL_PACKAGES` | Resolve UIDs to app names for the per-app traffic breakdown |
 
 ## Contributing

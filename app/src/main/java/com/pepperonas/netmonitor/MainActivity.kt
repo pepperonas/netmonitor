@@ -21,6 +21,8 @@ import com.pepperonas.netmonitor.service.NetworkMonitorService
 import com.pepperonas.netmonitor.ui.AppNavigation
 import com.pepperonas.netmonitor.ui.MainViewModel
 import com.pepperonas.netmonitor.ui.theme.NetMonitorTheme
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
@@ -56,9 +58,14 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Auto-start monitoring on app launch
+        // Auto-start monitoring on app launch (if enabled in settings)
         if (!NetworkMonitorService.isRunning.value) {
-            requestStartService()
+            val autoStart = runBlocking {
+                (application as NetMonitorApplication).settingsStore.autoStart.first()
+            }
+            if (autoStart) {
+                requestStartService()
+            }
         }
     }
 
