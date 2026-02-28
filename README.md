@@ -36,6 +36,16 @@ Two separate notification icons display download and upload speeds directly in t
 | **Apps** | Per-app traffic breakdown sorted by total usage, with app icons and separate RX/TX counters |
 | **Settings** | Theme (system/light/dark), update rate, auto-start, notification style, data budget, graph time window |
 
+### Screenshots
+
+<p align="center">
+  <img src="screenshots/01_live.png" width="180" alt="Live" />
+  <img src="screenshots/02_statistics.png" width="180" alt="Statistics" />
+  <img src="screenshots/03_speedtest.png" width="180" alt="Speed Test" />
+  <img src="screenshots/04_apps.png" width="180" alt="Apps" />
+  <img src="screenshots/05_settings.png" width="180" alt="Settings" />
+</p>
+
 ### Data budget
 Set a monthly data limit (1-50 GB) with configurable warning threshold. A color-coded progress bar on the live screen shows usage vs. budget with warning and exceeded states.
 
