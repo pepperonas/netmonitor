@@ -7,6 +7,8 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -14,22 +16,29 @@ import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.pepperonas.netmonitor.MainActivity
-import com.pepperonas.netmonitor.R
+import com.pepperonas.netmonitor.NetMonitorApplication
 import com.pepperonas.netmonitor.util.SpeedIconRenderer
 import com.pepperonas.netmonitor.util.TrafficMonitor
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class NetworkMonitorService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private val trafficMonitor = TrafficMonitor()
     private lateinit var notificationManager: NotificationManager
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val updateRunnable = object : Runnable {
         override fun run() {
             val speed = trafficMonitor.sample()
             updateNotifications(speed)
+            persistSample(speed)
             handler.postDelayed(this, UPDATE_INTERVAL)
         }
     }
@@ -65,10 +74,32 @@ class NetworkMonitorService : Service() {
         _isRunning.value = false
         handler.removeCallbacks(updateRunnable)
         notificationManager.cancel(NOTIFICATION_ID_UP)
+        serviceScope.cancel()
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun persistSample(speed: TrafficMonitor.Speed) {
+        val repo = (application as NetMonitorApplication).repository
+        val connType = getConnectionType()
+        serviceScope.launch {
+            repo.recordSample(speed.rxBytesPerSec, speed.txBytesPerSec, connType)
+        }
+    }
+
+    private fun getConnectionType(): String {
+        val cm = getSystemService(ConnectivityManager::class.java)
+        val network = cm.activeNetwork ?: return "none"
+        val caps = cm.getNetworkCapabilities(network) ?: return "none"
+        return when {
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "wifi"
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "mobile"
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "ethernet"
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN) -> "vpn"
+            else -> "other"
+        }
+    }
 
     private fun createNotificationChannels() {
         val downChannel = NotificationChannel(

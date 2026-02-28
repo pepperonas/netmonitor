@@ -1,3 +1,117 @@
 <resources>
     <string name="app_name">NetMonitor</string>
+
+    <!-- Navigation -->
+    <string name="nav_live">Live</string>
+    <string name="nav_stats">Statistics</string>
+    <string name="nav_apps">Apps</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Live Screen -->
+    <string name="download">Download</string>
+    <string name="upload">Upload</string>
+    <string name="monitoring_inactive">Monitoring inactive</string>
+    <string name="monitoring_start">Start monitoring</string>
+    <string name="monitoring_stop">Stop monitoring</string>
+    <string name="speed_label">Speed</string>
+    <string name="graph_dl">DL</string>
+    <string name="graph_ul">UL</string>
+    <string name="graph_now">now</string>
+
+    <!-- Network Info -->
+    <string name="connection">Connection</string>
+    <string name="not_connected">Not connected</string>
+    <string name="vpn_active">VPN active</string>
+    <string name="network_name">Network</string>
+    <string name="signal">Signal</string>
+    <string name="link_speed">Link speed</string>
+    <string name="carrier">Carrier</string>
+    <string name="network_type">Network type</string>
+    <string name="ip_address">IP address</string>
+
+    <!-- Apps Screen -->
+    <string name="app_traffic_title">App traffic (since reboot)</string>
+    <string name="loading_app_data">Loading app data\u2026</string>
+
+    <!-- Stats Screen -->
+    <string name="stats_today">Today</string>
+    <string name="stats_week">7 days</string>
+    <string name="stats_month">30 days</string>
+    <string name="data_usage">Data usage</string>
+    <string name="total">Total</string>
+    <string name="peak_values">Peak values</string>
+    <string name="peak_download">Peak download</string>
+    <string name="peak_upload">Peak upload</string>
+    <string name="hourly_average">Hourly averages</string>
+    <string name="no_data_yet">No data yet</string>
+    <string name="last_7_days">Last 7 days</string>
+    <string name="last_30_days">Last 30 days</string>
+
+    <!-- Settings -->
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="settings_monitoring">Monitoring</string>
+    <string name="settings_update_rate">Update rate</string>
+    <string name="settings_auto_start">Auto-start</string>
+    <string name="settings_auto_start_desc">Start monitoring on app launch</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_notification_style">Notification style</string>
+    <string name="notification_both">Download + Upload</string>
+    <string name="notification_download_only">Download only</string>
+    <string name="notification_upload_only">Upload only</string>
+    <string name="settings_graph">Graph</string>
+    <string name="settings_time_window">Time window</string>
+    <string name="seconds_format">%d seconds</string>
+    <string name="minutes_format">%d minutes</string>
+
+    <!-- About -->
+    <string name="about_info">Info</string>
+    <string name="about_developer">Developer</string>
+    <string name="about_website">Website</string>
+    <string name="about_source_code">Source code</string>
+
+    <!-- Notifications -->
+    <string name="channel_download">Download speed</string>
+    <string name="channel_download_desc">Shows current download speed</string>
+    <string name="channel_upload">Upload speed</string>
+    <string name="channel_upload_desc">Shows current upload speed</string>
+    <string name="notification_stop">Stop</string>
+
+    <!-- Data Budget -->
+    <string name="data_budget">Monthly data budget</string>
+    <string name="budget_remaining">%s remaining</string>
+    <string name="budget_exceeded">Budget exceeded!</string>
+    <string name="budget_warning">Approaching budget limit</string>
+    <string name="settings_data_budget">Data budget</string>
+    <string name="settings_budget_limit">Monthly limit</string>
+    <string name="budget_disabled">Disabled</string>
+    <string name="budget_gb_format">%s GB</string>
+    <string name="settings_budget_warning">Warning threshold</string>
+
+    <!-- Navigation (extra) -->
+    <string name="nav_speed_test">Test</string>
+
+    <!-- Speed Test -->
+    <string name="speed_test_start">Start speed test</string>
+    <string name="speed_test_running">Testing\u2026</string>
+    <string name="speed_test_ready">Ready</string>
+    <string name="speed_test_latency">Measuring latency\u2026</string>
+    <string name="speed_test_download">Downloading\u2026</string>
+    <string name="speed_test_upload">Uploading\u2026</string>
+    <string name="speed_test_done">Done</string>
+    <string name="speed_test_result">Result</string>
+    <string name="speed_test_ping">Ping</string>
+    <string name="speed_test_history">History</string>
+
+    <!-- Widget -->
+    <string name="widget_description">Shows current network speed and total traffic</string>
+
+    <!-- Quick Settings -->
+    <string name="tile_active">Active</string>
+    <string name="tile_inactive">Inactive</string>
+    <string name="tile_monitoring_active">Monitoring active</string>
+    <string name="tile_monitoring_inactive">Monitoring inactive</string>
 </resources>

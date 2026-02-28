@@ -1,0 +1,107 @@
+<resources>
+    <!-- Navigation -->
+    <string name="nav_stats">Statistik</string>
+    <string name="nav_settings">Einstellungen</string>
+
+    <!-- Live Screen -->
+    <string name="monitoring_inactive">Monitoring inaktiv</string>
+    <string name="monitoring_start">Monitoring starten</string>
+    <string name="monitoring_stop">Monitoring stoppen</string>
+    <string name="speed_label">Geschwindigkeit</string>
+    <string name="graph_now">jetzt</string>
+
+    <!-- Network Info -->
+    <string name="connection">Verbindung</string>
+    <string name="not_connected">Nicht verbunden</string>
+    <string name="vpn_active">VPN aktiv</string>
+    <string name="network_name">Netzwerk</string>
+    <string name="link_speed">Verbindung</string>
+    <string name="carrier">Anbieter</string>
+    <string name="network_type">Netz</string>
+    <string name="ip_address">IP-Adresse</string>
+
+    <!-- Apps Screen -->
+    <string name="app_traffic_title">App-Traffic (seit Neustart)</string>
+    <string name="loading_app_data">Lade App-Daten\u2026</string>
+
+    <!-- Stats Screen -->
+    <string name="stats_today">Heute</string>
+    <string name="stats_week">7 Tage</string>
+    <string name="stats_month">30 Tage</string>
+    <string name="data_usage">Datenverbrauch</string>
+    <string name="total">Gesamt</string>
+    <string name="peak_values">Spitzenwerte</string>
+    <string name="peak_download">Peak Download</string>
+    <string name="peak_upload">Peak Upload</string>
+    <string name="hourly_average">Stundenwerte (Durchschnitt)</string>
+    <string name="no_data_yet">Noch keine Daten</string>
+    <string name="last_7_days">Letzte 7 Tage</string>
+    <string name="last_30_days">Letzte 30 Tage</string>
+
+    <!-- Settings -->
+    <string name="settings_appearance">Darstellung</string>
+    <string name="settings_theme">Design</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Hell</string>
+    <string name="theme_dark">Dunkel</string>
+    <string name="settings_monitoring">Monitoring</string>
+    <string name="settings_update_rate">Aktualisierung</string>
+    <string name="settings_auto_start">Auto-Start</string>
+    <string name="settings_auto_start_desc">Monitoring beim App-Start beginnen</string>
+    <string name="settings_notifications">Benachrichtigungen</string>
+    <string name="settings_notification_style">Notification-Stil</string>
+    <string name="notification_both">Download + Upload</string>
+    <string name="notification_download_only">Nur Download</string>
+    <string name="notification_upload_only">Nur Upload</string>
+    <string name="settings_graph">Graph</string>
+    <string name="settings_time_window">Zeitfenster</string>
+    <string name="seconds_format">%d Sekunden</string>
+    <string name="minutes_format">%d Minuten</string>
+
+    <!-- About -->
+    <string name="about_developer">Entwickler</string>
+    <string name="about_website">Website</string>
+    <string name="about_source_code">Quellcode</string>
+
+    <!-- Notifications -->
+    <string name="channel_download">Download-Geschwindigkeit</string>
+    <string name="channel_download_desc">Zeigt aktuelle Download-Geschwindigkeit</string>
+    <string name="channel_upload">Upload-Geschwindigkeit</string>
+    <string name="channel_upload_desc">Zeigt aktuelle Upload-Geschwindigkeit</string>
+    <string name="notification_stop">Stopp</string>
+
+    <!-- Data Budget -->
+    <string name="data_budget">Monatliches Datenbudget</string>
+    <string name="budget_remaining">%s verbleibend</string>
+    <string name="budget_exceeded">Budget überschritten!</string>
+    <string name="budget_warning">Budget-Limit fast erreicht</string>
+    <string name="settings_data_budget">Datenbudget</string>
+    <string name="settings_budget_limit">Monatliches Limit</string>
+    <string name="budget_disabled">Deaktiviert</string>
+    <string name="budget_gb_format">%s GB</string>
+    <string name="settings_budget_warning">Warnschwelle</string>
+
+    <!-- Navigation (extra) -->
+    <string name="nav_speed_test">Test</string>
+
+    <!-- Speed Test -->
+    <string name="speed_test_start">Speed-Test starten</string>
+    <string name="speed_test_running">Teste\u2026</string>
+    <string name="speed_test_ready">Bereit</string>
+    <string name="speed_test_latency">Latenz messen\u2026</string>
+    <string name="speed_test_download">Download\u2026</string>
+    <string name="speed_test_upload">Upload\u2026</string>
+    <string name="speed_test_done">Fertig</string>
+    <string name="speed_test_result">Ergebnis</string>
+    <string name="speed_test_ping">Ping</string>
+    <string name="speed_test_history">Verlauf</string>
+
+    <!-- Widget -->
+    <string name="widget_description">Zeigt aktuelle Netzwerkgeschwindigkeit und Gesamttraffic</string>
+
+    <!-- Quick Settings -->
+    <string name="tile_active">Aktiv</string>
+    <string name="tile_inactive">Inaktiv</string>
+    <string name="tile_monitoring_active">Monitoring aktiv</string>
+    <string name="tile_monitoring_inactive">Monitoring inaktiv</string>
+</resources>

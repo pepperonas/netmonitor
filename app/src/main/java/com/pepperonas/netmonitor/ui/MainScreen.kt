@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -38,13 +37,9 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -56,88 +51,96 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pepperonas.netmonitor.R
 import com.pepperonas.netmonitor.model.AppTrafficInfo
 import com.pepperonas.netmonitor.util.TrafficMonitor
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(
+fun LiveScreen(
     viewModel: MainViewModel,
     onToggleService: (currentlyRunning: Boolean) -> Unit
 ) {
     val speed by viewModel.speed.collectAsStateWithLifecycle()
-    val appTraffic by viewModel.appTraffic.collectAsStateWithLifecycle()
     val isRunning by viewModel.isServiceRunning.collectAsStateWithLifecycle()
+    val recentSamples by viewModel.recentSamples.collectAsStateWithLifecycle()
+    val graphWindow by viewModel.graphWindow.collectAsStateWithLifecycle()
+    val networkDetails by viewModel.networkDetails.collectAsStateWithLifecycle()
+    val dataBudget by viewModel.dataBudget.collectAsStateWithLifecycle()
+    val budgetWarningPercent by viewModel.budgetWarningPercent.collectAsStateWithLifecycle()
+    val monthlyUsage by viewModel.monthlyUsage.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val versionName = remember {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: ""
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("NetMonitor") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item { SpeedCard(speed, isRunning) }
+        if (dataBudget > 0) {
+            item {
+                DataBudgetCard(
+                    usedBytes = monthlyUsage,
+                    budgetBytes = dataBudget,
+                    warningPercent = budgetWarningPercent
                 )
+            }
+        }
+        item { NetworkInfoCard(details = networkDetails) }
+        item { SpeedGraph(samples = recentSamples, windowSeconds = graphWindow) }
+        item {
+            ServiceToggleButton(
+                isRunning = isRunning,
+                onToggle = { onToggleService(isRunning) }
             )
         }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                SpeedCard(speed, isRunning)
-            }
-
-            item {
-                ServiceToggleButton(
-                    isRunning = isRunning,
-                    onToggle = { onToggleService(isRunning) }
-                )
-            }
-
-            item {
-                SectionHeader("App-Traffic (seit Neustart)")
-            }
-
-            if (appTraffic.isEmpty()) {
-                item {
-                    Text(
-                        "Lade App-Daten\u2026",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-                }
-            }
-
-            items(appTraffic, key = { it.uid }) { info ->
-                AppTrafficRow(info)
-            }
-
-            item {
-                Spacer(Modifier.height(4.dp))
-                Divider(color = MaterialTheme.colorScheme.outlineVariant)
-                Spacer(Modifier.height(4.dp))
-                AboutSection(versionName)
-                Spacer(Modifier.height(8.dp))
-            }
+        item {
+            Spacer(Modifier.height(4.dp))
+            Divider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(4.dp))
+            AboutSection(versionName)
+            Spacer(Modifier.height(8.dp))
         }
     }
 }
 
 @Composable
-private fun SectionHeader(title: String) {
+fun AppsScreen(viewModel: MainViewModel) {
+    val appTraffic by viewModel.appTraffic.collectAsStateWithLifecycle()
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item { SectionHeader(stringResource(R.string.app_traffic_title)) }
+
+        if (appTraffic.isEmpty()) {
+            item {
+                Text(
+                    stringResource(R.string.loading_app_data),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+        }
+
+        items(appTraffic, key = { it.uid }) { info -> AppTrafficRow(info) }
+        item { Spacer(Modifier.height(16.dp)) }
+    }
+}
+
+@Composable
+internal fun SectionHeader(title: String) {
     Text(
         title,
         style = MaterialTheme.typography.titleMedium,
@@ -147,10 +150,7 @@ private fun SectionHeader(title: String) {
 }
 
 @Composable
-private fun ServiceToggleButton(
-    isRunning: Boolean,
-    onToggle: () -> Unit
-) {
+private fun ServiceToggleButton(isRunning: Boolean, onToggle: () -> Unit) {
     val containerColor by animateColorAsState(
         targetValue = if (isRunning) MaterialTheme.colorScheme.error
         else MaterialTheme.colorScheme.primary,
@@ -159,9 +159,7 @@ private fun ServiceToggleButton(
 
     Button(
         onClick = onToggle,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(48.dp),
+        modifier = Modifier.fillMaxWidth().height(48.dp),
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(containerColor = containerColor)
     ) {
@@ -172,7 +170,7 @@ private fun ServiceToggleButton(
         )
         Spacer(Modifier.width(8.dp))
         Text(
-            if (isRunning) "Monitoring stoppen" else "Monitoring starten",
+            stringResource(if (isRunning) R.string.monitoring_stop else R.string.monitoring_start),
             style = MaterialTheme.typography.labelLarge
         )
     }
@@ -188,28 +186,23 @@ private fun SpeedCard(speed: TrafficMonitor.Speed, isRunning: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
-                .alpha(contentAlpha)
+            modifier = Modifier.fillMaxWidth().padding(20.dp).alpha(contentAlpha)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 SpeedColumn(
-                    label = "Download",
+                    label = stringResource(R.string.download),
                     value = TrafficMonitor.formatSpeed(speed.rxBytesPerSec),
                     icon = Icons.Default.ArrowDownward,
                     color = MaterialTheme.colorScheme.primary
                 )
                 SpeedColumn(
-                    label = "Upload",
+                    label = stringResource(R.string.upload),
                     value = TrafficMonitor.formatSpeed(speed.txBytesPerSec),
                     icon = Icons.Default.ArrowUpward,
                     color = MaterialTheme.colorScheme.tertiary
@@ -218,12 +211,10 @@ private fun SpeedCard(speed: TrafficMonitor.Speed, isRunning: Boolean) {
 
             if (!isRunning) {
                 Text(
-                    "Monitoring inaktiv",
+                    stringResource(R.string.monitoring_inactive),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .padding(top = 8.dp)
+                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp)
                 )
             }
         }
@@ -231,21 +222,12 @@ private fun SpeedCard(speed: TrafficMonitor.Speed, isRunning: Boolean) {
 }
 
 @Composable
-private fun SpeedColumn(
-    label: String,
-    value: String,
-    icon: ImageVector,
-    color: Color
-) {
+private fun SpeedColumn(label: String, value: String, icon: ImageVector, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(icon, contentDescription = label, tint = color, modifier = Modifier.size(28.dp))
         Spacer(Modifier.height(4.dp))
         Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text(
-            label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -265,67 +247,32 @@ private fun AppTrafficRow(info: AppTrafficInfo) {
                 drawable.draw(canvas)
             }
             bmp.asImageBitmap()
-        } catch (_: Exception) {
-            null
-        }
+        } catch (_: Exception) { null }
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
-    ) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
                 if (icon != null) {
-                    Image(
-                        bitmap = icon,
-                        contentDescription = info.appName,
-                        modifier = Modifier.size(36.dp)
-                    )
+                    Image(bitmap = icon, contentDescription = info.appName, modifier = Modifier.size(36.dp))
                 }
             }
-
             Spacer(Modifier.width(12.dp))
-
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    info.appName,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Text(info.appName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        "\u2193 ${TrafficMonitor.formatBytes(info.rxBytes)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        "\u2191 ${TrafficMonitor.formatBytes(info.txBytes)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
+                    Text("\u2193 ${TrafficMonitor.formatBytes(info.rxBytes)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    Text("\u2191 ${TrafficMonitor.formatBytes(info.txBytes)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
                 }
             }
-
-            Text(
-                TrafficMonitor.formatBytes(info.rxBytes + info.txBytes),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text(TrafficMonitor.formatBytes(info.rxBytes + info.txBytes), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -337,79 +284,39 @@ private fun AboutSection(versionName: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text(
-                "Info",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            AboutRow(
-                icon = Icons.Default.Person,
-                label = "Entwickler",
-                value = "Martin Pfeffer"
-            )
-
+            Text(stringResource(R.string.about_info), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            AboutRow(icon = Icons.Default.Person, label = stringResource(R.string.about_developer), value = "Martin Pfeffer")
             AboutRow(
                 icon = Icons.Default.Language,
-                label = "Website",
+                label = stringResource(R.string.about_website),
                 value = "celox.io",
-                onClick = {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://celox.io")))
-                }
+                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://celox.io"))) }
             )
-
             AboutRow(
                 icon = Icons.Default.Code,
-                label = "Quellcode",
+                label = stringResource(R.string.about_source_code),
                 value = "GitHub",
-                onClick = {
-                    context.startActivity(
-                        Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/pepperonas/netmonitor"))
-                    )
-                }
+                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/pepperonas/netmonitor"))) }
             )
-
-            Text(
-                "NetMonitor v$versionName",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text("NetMonitor v$versionName", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
 @Composable
-private fun AboutRow(
-    icon: ImageVector,
-    label: String,
-    value: String,
-    onClick: (() -> Unit)? = null
-) {
+private fun AboutRow(icon: ImageVector, label: String, value: String, onClick: (() -> Unit)? = null) {
     Row(
-        modifier = if (onClick != null) Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .clickable { onClick() }
-            .padding(vertical = 2.dp)
-        else Modifier
-            .fillMaxWidth()
-            .padding(vertical = 2.dp),
+        modifier = if (onClick != null) Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { onClick() }.padding(vertical = 2.dp)
+        else Modifier.fillMaxWidth().padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            icon,
-            contentDescription = label,
-            modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
+        Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.width(12.dp))
         Text(label, style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.weight(1f))
@@ -417,8 +324,7 @@ private fun AboutRow(
             value,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
-            color = if (onClick != null) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.onSurface
+            color = if (onClick != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
         )
     }
 }
