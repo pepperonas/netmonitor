@@ -70,36 +70,48 @@ object NetworkInfoProvider {
 
     @Suppress("DEPRECATION")
     private fun getWifiDetails(context: Context, isVpn: Boolean): NetworkDetails {
-        val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        val info = wm.connectionInfo
+        return try {
+            val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+            val info = wm.connectionInfo
 
-        val ssid = info?.ssid?.removePrefix("\"")?.removeSuffix("\"")
-            ?.takeIf { it != "<unknown ssid>" }
-        val rssi = info?.rssi?.takeIf { it != 0 }
-        val level = rssi?.let { WifiManager.calculateSignalLevel(it, 5) }
-        val freq = info?.frequency?.takeIf { it > 0 }
-        val linkSpeed = info?.linkSpeed?.takeIf { it > 0 }
+            val ssid = info?.ssid?.removePrefix("\"")?.removeSuffix("\"")
+                ?.takeIf { it != "<unknown ssid>" }
+            val rssi = info?.rssi?.takeIf { it != 0 }
+            val level = rssi?.let { WifiManager.calculateSignalLevel(it, 5) }
+            val freq = info?.frequency?.takeIf { it > 0 }
+            val linkSpeed = info?.linkSpeed?.takeIf { it > 0 }
 
-        val band = when {
-            freq == null -> null
-            freq < 3000 -> "2.4 GHz"
-            freq < 6000 -> "5 GHz"
-            else -> "6 GHz"
+            val band = when {
+                freq == null -> null
+                freq < 3000 -> "2.4 GHz"
+                freq < 6000 -> "5 GHz"
+                else -> "6 GHz"
+            }
+
+            NetworkDetails(
+                connectionType = "WiFi" + (band?.let { " ($it)" } ?: ""),
+                connectionIcon = "wifi",
+                wifiSsid = ssid,
+                wifiSignalStrength = rssi,
+                wifiSignalLevel = level,
+                wifiFrequency = freq,
+                wifiLinkSpeed = linkSpeed,
+                mobileCarrier = null,
+                mobileNetworkType = null,
+                localIp = getLocalIpAddress(),
+                isVpn = isVpn
+            )
+        } catch (_: SecurityException) {
+            NetworkDetails(
+                connectionType = "WiFi",
+                connectionIcon = "wifi",
+                wifiSsid = null, wifiSignalStrength = null, wifiSignalLevel = null,
+                wifiFrequency = null, wifiLinkSpeed = null,
+                mobileCarrier = null, mobileNetworkType = null,
+                localIp = getLocalIpAddress(),
+                isVpn = isVpn
+            )
         }
-
-        return NetworkDetails(
-            connectionType = "WiFi" + (band?.let { " ($it)" } ?: ""),
-            connectionIcon = "wifi",
-            wifiSsid = ssid,
-            wifiSignalStrength = rssi,
-            wifiSignalLevel = level,
-            wifiFrequency = freq,
-            wifiLinkSpeed = linkSpeed,
-            mobileCarrier = null,
-            mobileNetworkType = null,
-            localIp = getLocalIpAddress(),
-            isVpn = isVpn
-        )
     }
 
     private fun getMobileDetails(context: Context, isVpn: Boolean): NetworkDetails {
