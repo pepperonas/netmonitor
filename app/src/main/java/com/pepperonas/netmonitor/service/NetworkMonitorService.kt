@@ -123,17 +123,26 @@ class NetworkMonitorService : Service() {
     }
 
     private fun createNotificationChannels() {
+        // Remove old channels (importance can't be changed after creation)
+        OLD_CHANNEL_IDS.forEach { notificationManager.deleteNotificationChannel(it) }
+
         val downChannel = NotificationChannel(
-            CHANNEL_ID_DOWN, getString(R.string.channel_download), NotificationManager.IMPORTANCE_LOW
+            CHANNEL_ID_DOWN, getString(R.string.channel_download), NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
             description = getString(R.string.channel_download_desc)
             setShowBadge(false)
+            setSound(null, null)
+            enableVibration(false)
+            enableLights(false)
         }
         val upChannel = NotificationChannel(
-            CHANNEL_ID_UP, getString(R.string.channel_upload), NotificationManager.IMPORTANCE_LOW
+            CHANNEL_ID_UP, getString(R.string.channel_upload), NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
             description = getString(R.string.channel_upload_desc)
             setShowBadge(false)
+            setSound(null, null)
+            enableVibration(false)
+            enableLights(false)
         }
         notificationManager.createNotificationChannel(downChannel)
         notificationManager.createNotificationChannel(upChannel)
@@ -150,6 +159,7 @@ class NetworkMonitorService : Service() {
             .setWhen(Long.MAX_VALUE)
             .setShowWhen(false)
             .setSortKey("a")
+            .setGroup(GROUP_KEY_DOWN)
             .build()
     }
 
@@ -164,6 +174,7 @@ class NetworkMonitorService : Service() {
             .setWhen(Long.MAX_VALUE - 1)
             .setShowWhen(false)
             .setSortKey("b")
+            .setGroup(GROUP_KEY_UP)
             .build()
     }
 
@@ -207,12 +218,15 @@ class NetworkMonitorService : Service() {
     }
 
     companion object {
-        const val CHANNEL_ID_DOWN = "net_monitor_download"
-        const val CHANNEL_ID_UP = "net_monitor_upload"
+        const val CHANNEL_ID_DOWN = "net_monitor_download_v2"
+        const val CHANNEL_ID_UP = "net_monitor_upload_v2"
         const val NOTIFICATION_ID_DOWN = 1
         const val NOTIFICATION_ID_UP = 2
         const val ACTION_STOP = "com.pepperonas.netmonitor.STOP"
         const val UPDATE_INTERVAL = 1000L // 1 Hz
+        private const val GROUP_KEY_DOWN = "net_monitor_dl"
+        private const val GROUP_KEY_UP = "net_monitor_ul"
+        private val OLD_CHANNEL_IDS = listOf("net_monitor_download", "net_monitor_upload")
 
         private val _isRunning = MutableStateFlow(false)
         val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
