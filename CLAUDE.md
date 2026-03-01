@@ -4,15 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build & Deploy
 
+Requires JDK 17 and Android SDK with API 34. Gradle 8.2 via wrapper.
+
 ```bash
 export ANDROID_HOME=~/Library/Android/sdk
 
 ./gradlew assembleDebug                    # Debug APK → app/build/outputs/apk/debug/
 ./gradlew assembleRelease                  # Signed release APK (needs signing config)
 ./gradlew test                             # Unit tests
+./gradlew test --tests "*.TrafficMonitorTest"  # Single test class
+./gradlew connectedAndroidTest             # Instrumented tests (needs device/emulator)
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb shell am start -n com.pepperonas.netmonitor/.MainActivity
 ```
+
+**Tests:** Unit tests in `app/src/test/` cover formatting logic (`TrafficMonitorTest`, `SpeedIconRendererTest`). Instrumented tests in `app/src/androidTest/` cover Room DAOs (`SpeedSampleDaoTest`) with in-memory DB.
 
 **Signing:** Checks env vars first (`RELEASE_STORE_FILE`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`), falls back to `local.properties`. Keystore: `netmonitor-release.jks` in `~/My Drive/dev/keystore/netmonitor-keystore/`. CI uses base64-encoded keystore in GitHub Secrets.
 
@@ -23,7 +29,7 @@ adb shell am start -n com.pepperonas.netmonitor/.MainActivity
 3. Build release APK locally, rename to `NetMonitor-v<version>-release.apk` (replaces old APK in repo root)
 4. Commit, tag: `git tag v<version> && git push origin v<version>`
 
-The `v*` tag triggers `.github/workflows/release.yml` which decodes the keystore from `KEYSTORE_BASE64` secret, builds signed+debug APKs, and uploads both to a GitHub Release.
+The `v*` tag triggers `.github/workflows/release.yml` (JDK 17 Temurin, Gradle 8.2) which decodes the keystore from `KEYSTORE_BASE64` secret, builds signed+debug APKs, and uploads both to a GitHub Release. Required secrets: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`.
 
 ## Architecture
 
@@ -90,5 +96,6 @@ Status bar icons show only a number — the format encodes the unit:
 - **Foreground service type** — `specialUse` (required for Android 14+).
 - **WiFi info** — Requires `ACCESS_WIFI_STATE`. `NetworkInfoProvider.getWifiDetails()` uses deprecated `WifiManager.getConnectionInfo()` with try-catch for SecurityException.
 - **TrafficStats values are cumulative** — The monitor computes deltas per second. Per-app traffic via `getUidRxBytes(uid)` resets on reboot.
+- **Per-app traffic (Apps tab)** — Uses `NetworkStatsManager.querySummary()` which requires `PACKAGE_USAGE_STATS` (AppOps runtime permission, not manifest). User must grant via Settings > Special app access > Usage access.
 - **ProGuard** — Minimal rules in `app/proguard-rules.pro`: keeps Room entities and RoomDatabase subclasses only. Release builds use `proguard-android-optimize.txt` + these rules.
 - **Graph time window** — `recentSamples` uses `flatMapLatest` on the `graphWindow` setting Flow so it dynamically re-subscribes when the user changes the time window.

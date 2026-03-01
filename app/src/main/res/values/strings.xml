@@ -75,6 +75,10 @@
     <string name="about_website">Website</string>
     <string name="about_source_code">Source code</string>
 
+    <!-- Permission -->
+    <string name="notification_permission_required">Notification permission required to start monitoring</string>
+    <string name="open_settings">Open settings</string>
+
     <!-- Notifications -->
     <string name="channel_download">Download speed</string>
     <string name="channel_download_desc">Shows current download speed</string>

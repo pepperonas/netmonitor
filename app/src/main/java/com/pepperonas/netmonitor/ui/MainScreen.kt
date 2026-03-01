@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import android.os.Build
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -74,6 +75,7 @@ fun LiveScreen(
     val dataBudget by viewModel.dataBudget.collectAsStateWithLifecycle()
     val budgetWarningPercent by viewModel.budgetWarningPercent.collectAsStateWithLifecycle()
     val monthlyUsage by viewModel.monthlyUsage.collectAsStateWithLifecycle()
+    val hasNotificationPermission by viewModel.hasNotificationPermission.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val versionName = remember {
@@ -85,6 +87,9 @@ fun LiveScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission) {
+            item { NotificationPermissionBanner() }
+        }
         item { SpeedCard(speed, isRunning) }
         if (dataBudget > 0) {
             item {
@@ -148,7 +153,9 @@ fun AppsScreen(viewModel: MainViewModel) {
                         Button(
                             onClick = {
                                 context.startActivity(
-                                    Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                                    Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
+                                        data = Uri.parse("package:${context.packageName}")
+                                    }
                                 )
                             },
                             shape = RoundedCornerShape(8.dp)
@@ -184,6 +191,46 @@ internal fun SectionHeader(title: String) {
         fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
     )
+}
+
+@Composable
+private fun NotificationPermissionBanner() {
+    val context = LocalContext.current
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                stringResource(R.string.notification_permission_required),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(Modifier.width(8.dp))
+            Button(
+                onClick = {
+                    context.startActivity(
+                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                        }
+                    )
+                },
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text(stringResource(R.string.open_settings))
+            }
+        }
+    }
 }
 
 @Composable

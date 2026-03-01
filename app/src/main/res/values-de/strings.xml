@@ -73,6 +73,10 @@
     <string name="about_website">Website</string>
     <string name="about_source_code">Quellcode</string>
 
+    <!-- Permission -->
+    <string name="notification_permission_required">Benachrichtigungs-Berechtigung erforderlich zum Starten</string>
+    <string name="open_settings">Einstellungen öffnen</string>
+
     <!-- Notifications -->
     <string name="channel_download">Download-Geschwindigkeit</string>
     <string name="channel_download_desc">Zeigt aktuelle Download-Geschwindigkeit</string>

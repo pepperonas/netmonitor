@@ -1,5 +1,6 @@
 package com.pepperonas.netmonitor.ui
 
+import android.Manifest
 import android.app.AppOpsManager
 import android.app.Application
 import android.app.usage.NetworkStats
@@ -7,7 +8,9 @@ import android.app.usage.NetworkStatsManager
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.TrafficStats
+import android.os.Build
 import android.os.Process
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pepperonas.netmonitor.NetMonitorApplication
@@ -52,6 +55,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _hasUsageAccess = MutableStateFlow(false)
     val hasUsageAccess: StateFlow<Boolean> = _hasUsageAccess
+
+    private val _hasNotificationPermission = MutableStateFlow(true)
+    val hasNotificationPermission: StateFlow<Boolean> = _hasNotificationPermission
 
     private val _networkDetails = MutableStateFlow(NetworkInfoProvider.getDetails(application))
     val networkDetails: StateFlow<NetworkDetails> = _networkDetails
@@ -120,6 +126,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun stopSpeedUpdates() {
         speedJob?.cancel()
+    }
+
+    fun checkNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val app = getApplication<Application>()
+            _hasNotificationPermission.value = ContextCompat.checkSelfPermission(
+                app, Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            _hasNotificationPermission.value = true
+        }
     }
 
     fun checkUsageAccess() {

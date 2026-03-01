@@ -30,6 +30,7 @@ class MainActivity : ComponentActivity() {
     private val notificationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
+        viewModel.checkNotificationPermission()
         if (granted) startMonitorService()
     }
 
@@ -73,6 +74,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         viewModel.startSpeedUpdates()
         viewModel.loadAppTraffic()
+        viewModel.checkNotificationPermission()
     }
 
     override fun onPause() {
