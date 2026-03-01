@@ -14,8 +14,8 @@ android {
         applicationId = "com.pepperonas.netmonitor"
         minSdk = 26
         targetSdk = 34
-        versionCode = 8
-        versionName = "0.5.1"
+        versionCode = 9
+        versionName = "0.5.2"
     }
 
     signingConfigs {
