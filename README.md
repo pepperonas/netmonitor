@@ -5,12 +5,42 @@
 <h1 align="center">NetMonitor</h1>
 
 <p align="center">
+  <a href="https://developer.android.com"><img src="https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white" alt="Platform Android" /></a>
   <a href="https://developer.android.com/about/versions/oreo"><img src="https://img.shields.io/badge/minSdk-26-brightgreen" alt="minSdk 26" /></a>
   <a href="https://developer.android.com/about/versions/14"><img src="https://img.shields.io/badge/targetSdk-34-blue" alt="targetSdk 34" /></a>
   <img src="https://img.shields.io/badge/version-0.5.4-orange" alt="Version 0.5.4" />
+  <a href="https://github.com/pepperonas/netmonitor/actions/workflows/release.yml"><img src="https://github.com/pepperonas/netmonitor/actions/workflows/release.yml/badge.svg" alt="Build" /></a>
+  <a href="https://github.com/pepperonas/netmonitor/releases/latest"><img src="https://img.shields.io/github/v/release/pepperonas/netmonitor?label=release&logo=github" alt="GitHub Release" /></a>
+  <a href="https://github.com/pepperonas/netmonitor/releases/latest"><img src="https://img.shields.io/github/downloads/pepperonas/netmonitor/total?color=green&logo=github" alt="Downloads" /></a>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Kotlin-1.9.22-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin" />
   <img src="https://img.shields.io/badge/Jetpack_Compose-Material_3-4285F4?logo=jetpackcompose&logoColor=white" alt="Compose" />
+  <img src="https://img.shields.io/badge/Compose_BOM-2024.01.00-4285F4?logo=jetpackcompose&logoColor=white" alt="Compose BOM" />
+  <img src="https://img.shields.io/badge/Room-2.6.1-4285F4?logo=android&logoColor=white" alt="Room" />
+  <img src="https://img.shields.io/badge/DataStore-1.0.0-4285F4?logo=android&logoColor=white" alt="DataStore" />
+  <img src="https://img.shields.io/badge/Navigation-2.7.6-4285F4?logo=android&logoColor=white" alt="Navigation" />
+  <img src="https://img.shields.io/badge/Glance-Widgets-34A853?logo=android&logoColor=white" alt="Glance" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/JDK-17-ED8B00?logo=openjdk&logoColor=white" alt="JDK 17" />
+  <img src="https://img.shields.io/badge/Gradle-8.2-02303A?logo=gradle&logoColor=white" alt="Gradle" />
+  <img src="https://img.shields.io/badge/AGP-8.2.0-02303A?logo=gradle&logoColor=white" alt="AGP" />
+  <img src="https://img.shields.io/badge/KSP-1.9.22--1.0.17-7F52FF?logo=kotlin&logoColor=white" alt="KSP" />
+  <img src="https://img.shields.io/badge/ProGuard-enabled-E34F26" alt="ProGuard" />
+</p>
+
+<p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License" /></a>
+  <a href="https://github.com/pepperonas/netmonitor"><img src="https://img.shields.io/github/repo-size/pepperonas/netmonitor" alt="Repo Size" /></a>
+  <a href="https://github.com/pepperonas/netmonitor/commits/main"><img src="https://img.shields.io/github/last-commit/pepperonas/netmonitor" alt="Last Commit" /></a>
+  <a href="https://github.com/pepperonas/netmonitor/issues"><img src="https://img.shields.io/github/issues/pepperonas/netmonitor" alt="Issues" /></a>
+  <a href="https://github.com/pepperonas/netmonitor/stargazers"><img src="https://img.shields.io/github/stars/pepperonas/netmonitor?style=flat" alt="Stars" /></a>
+  <a href="https://github.com/pepperonas/netmonitor/network/members"><img src="https://img.shields.io/github/forks/pepperonas/netmonitor?style=flat" alt="Forks" /></a>
+  <img src="https://img.shields.io/badge/i18n-EN%20%7C%20DE-blue" alt="i18n EN | DE" />
+  <img src="https://img.shields.io/badge/maintenance-active-brightgreen" alt="Maintained" />
 </p>
 
 <p align="center">
